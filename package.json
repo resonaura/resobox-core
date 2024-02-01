@@ -1,0 +1,14 @@
+{
+    "name": "resobox-core",
+    "version": "1.0.0",
+    "description": "A Node.js project for running Python scripts",
+    "main": "index.js",
+    "scripts": {
+      "start": "python3 main.py"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {}
+  }
+  
