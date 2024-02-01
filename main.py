@@ -167,7 +167,7 @@ def update_effects_status():
 
 def audio_stream():
     try:
-        with sd.Stream(callback=callback):
+        with sd.Stream(callback=callback, channels=2, latency=0, blocksize=128):
             print("Press Space to start/stop recording, ESC to quit")
             while True:
                 time.sleep(0.1)
