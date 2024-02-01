@@ -16,6 +16,7 @@ import webview
 
 # Global Variables and Defaults
 sd.default.latency = 'low'
+
 q = queue.Queue()
 recording = False
 file_index = 0
@@ -26,6 +27,7 @@ output_rms = 0
 input_rms_values = []
 output_rms_values = []
 window_size = 50  # Window size for RMS moving average
+
 board = Pedalboard([
     Convolution("./impulse.wav", 0.5),
     Delay(delay_seconds=0.5, feedback=0.5, mix=0.4),
@@ -119,18 +121,21 @@ def start_websocket_server():
 
 # HTTP Server Setup
 async def handle_get(request):
-    return web.Response(text="This is a GET response!")
+    return web.Response(text="Hi from ResoBox, i'm alive!")
 
 async def handle_post(request):
     global board
     data = await request.json()
+    effect_type = data.get("effect_type")
     new_mix = data.get("mix")
-    if new_mix is not None:
+    if new_mix is not None and effect_type:
         for effect in board:
-            if isinstance(effect, Delay):
+            if effect.__class__.__name__ == effect_type and hasattr(effect, 'mix'):
                 effect.mix = new_mix
-        return web.Response(text=f"Updated mix to: {new_mix}")
-    return web.Response(text="Mix value not provided", status=400)
+        update_effects_status()
+        return web.Response(text=f"Updated {effect_type} mix to: {new_mix}")
+    return web.Response(text="Effect type or mix value not provided", status=400)
+
 
 async def start_http_server(loop):
     app = web.Application()
