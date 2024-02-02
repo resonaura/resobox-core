@@ -4,4 +4,3 @@ soundfile>=0.10.3.post1
 pedalboard>=0.3.7
 aiohttp>=3.7.4
 websockets>=8.1
-pywebview>=3.5

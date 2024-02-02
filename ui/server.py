@@ -8,13 +8,13 @@ import os
 # Assuming your React app's build directory is copied to "webui" within your project directory
 async def handle_get(request):
     # Serve the index.html for any GET request
-    with open('build/index.html', 'rb') as f:
+    with open('ui/build/index.html', 'rb') as f:
         return web.Response(body=f.read(), content_type='text/html')
 
 async def handle_static(request):
     # Extract the requested file path from the URL
     file_path = request.match_info['filename']
-    full_path = os.path.join('build', file_path)
+    full_path = os.path.join('ui','build', file_path)
 
     # Determine content type based on file extension
     content_type = 'application/octet-stream'  # Default content type

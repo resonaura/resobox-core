@@ -3,6 +3,7 @@ import calendar
 import json
 import os
 import queue
+import subprocess
 import threading
 import time
 import numpy as np
@@ -12,9 +13,11 @@ from pedalboard import Limiter, Pedalboard, Convolution, Delay
 from aiohttp import web
 import aiohttp_cors
 import websockets
-import webview
 import socket
 from ui.server import start_ui_server_in_thread 
+
+
+print(sd.query_devices())
 
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
@@ -64,37 +67,61 @@ def check_port(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(('localhost', port)) == 0
 
+def run_electron(port='2811'):
+    abspath = os.path.abspath(__file__)
+    dname = os.path.dirname(abspath)
+    os.chdir(dname)
+    
+    # Start the Electron app as a subprocess
+    # Pass the port as an environment variable
+    process = subprocess.Popen(f'npm run electron --port {port}', shell=True)
+
+    # Wait for the Electron process to terminate
+    process.wait()
+    os._exit(1)
+
 # Check if React app is running on port 2810
 if check_port(2810):
     ui_dev_mode = True
 else:
     ui_dev_mode = False
 
-# Audio Processing
 def callback(indata, outdata, frames, time, status):
     global input_rms, output_rms
 
-    # Ensure indata is treated as stereo
+    # Handle mono to stereo conversion or ensure only two channels are used
     if indata.shape[1] == 1:  # Mono input
-        # Duplicate the mono input across two channels to create a stereo effect
         stereo_indata = np.hstack((indata, indata))
-    elif indata.shape[1] > 2:  # Если входных каналов больше двух
-        stereo_indata = indata[:, :2]  # Используем только первые два канала
+    elif indata.shape[1] > 2:  # More than two input channels
+        stereo_indata = indata[:, :2]  # Use only the first two channels
     else:
-        # Если каналов два или меньше, используем входные данные как есть
-        stereo_indata = indata
+        stereo_indata = indata  # Two channels, use as is
 
-    if status:
-        print(status)
     processed_data = board(stereo_indata, sample_rate=44100, reset=False)
+
+    # Ensure processed_data is compatible with outdata shape
+    if processed_data.shape[0] > outdata.shape[0]:
+        # If processed_data has more frames than outdata can handle, truncate it
+        processed_data = processed_data[:outdata.shape[0], :]
+    if processed_data.shape[1] != outdata.shape[1]:
+        # If the channel count doesn't match, adjust it.
+        # Assuming outdata requires stereo output (2 channels)
+        if processed_data.shape[1] == 1:  # Mono to Stereo
+            processed_data = np.tile(processed_data, (1, 2))
+        else:  # If processed_data has more than 2 channels, use only the first two
+            processed_data = processed_data[:, :2]
+
+    outdata[:processed_data.shape[0], :processed_data.shape[1]] = processed_data
+
+    # Append RMS values and compute moving averages
     if len(processed_data) > 0:
-        outdata[:len(processed_data)] = processed_data
         input_rms_values.append(np.sqrt(np.mean(np.square(stereo_indata))))
         output_rms_values.append(np.sqrt(np.mean(np.square(processed_data))))
         input_rms = moving_average(input_rms_values, window_size)
         output_rms = moving_average(output_rms_values, window_size)
     else:
         outdata.fill(0.0)
+
     if recording:
         q.put(processed_data.copy())
 
@@ -207,7 +234,6 @@ def update_effects_status():
 def audio_stream():
     try:
         with sd.Stream(callback=callback, latency=0, blocksize=128, samplerate=44100):
-            print("Press Space to start/stop recording, ESC to quit")
             while True:
                 time.sleep(0.1)
     except KeyboardInterrupt:
@@ -238,11 +264,10 @@ async def main():
         else:
             time.sleep(1)
         
-    url = f'http://localhost:{target_port}'
+    run_electron(target_port)
 
-    window = webview.create_window('ResoBox', url)
-    window.events.closed += lambda: os._exit(1)
-    webview.start()
+    while True:
+        time.sleep(0.1)
 
 if __name__ == '__main__':
     asyncio.run(main())
