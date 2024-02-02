@@ -1,6 +1,7 @@
-numpy>=1.21.2
-sounddevice>=0.4.1
-soundfile>=0.10.3.post1
-pedalboard>=0.3.7
-aiohttp>=3.7.4
-websockets>=8.1
+numpy
+sounddevice
+soundfile
+pedalboard
+aiohttp
+aiohttp-cors
+websockets
