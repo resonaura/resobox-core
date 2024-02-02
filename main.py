@@ -224,12 +224,22 @@ async def main():
         threading.Thread(target=start_ui_server_in_thread).start()
     
     threading.Thread(target=audio_stream).start()
-
+    
     if not ui_dev_mode:
-        url = 'http://localhost:2811'
+        target_port = 2811
     else:
-        url = 'http://localhost:2810'
+        target_port = 2810
+
+    need_retry = True
+    while need_retry:
+        port_exists = check_port(target_port)
+        if port_exists:
+            need_retry = False
+        else:
+            time.sleep(1)
         
+    url = f'http://localhost:{target_port}'
+
     window = webview.create_window('ResoBox', url)
     window.events.closed += lambda: os._exit(1)
     webview.start()
