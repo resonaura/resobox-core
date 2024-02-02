@@ -9,15 +9,17 @@ import time
 import numpy as np
 import sounddevice as sd
 import soundfile as sf
-from pedalboard import Limiter, Pedalboard, Convolution, Delay
-from aiohttp import web
 import aiohttp_cors
 import websockets
-import socket
+
+from pedalboard import Limiter, Pedalboard, Convolution, Delay
+from aiohttp import web
+from utils import check_port, create_effect, moving_average, serialize
 from ui.server import start_ui_server_in_thread 
 
 
 print(sd.query_devices())
+print("\n")
 
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
@@ -37,35 +39,13 @@ input_rms_values = []
 output_rms_values = []
 window_size = 50  # Window size for RMS moving average
 
-board = Pedalboard([
-    Convolution("./impulse.wav", 0.5),
-    Delay(delay_seconds=0.5, feedback=0.5, mix=0.4),
-    Limiter()
-])
-
-# Utility Functions
-def moving_average(values, window_size):
-    if len(values) < window_size:
-        return np.mean(values)
-    return np.mean(values[-window_size:])
-
-def serialize(obj):
-    if isinstance(obj, (str, int, float, bool, type(None))):
-        return json.dumps(obj)
-    elif isinstance(obj, (list, tuple, set)):
-        return json.dumps([serialize(item) for item in obj])
-    elif isinstance(obj, dict):
-        return json.dumps({k: serialize(v) for k, v in obj.items()})
-    else:
-        try:
-            data = {attr: serialize(getattr(obj, attr)) for attr in dir(obj) if not callable(getattr(obj, attr)) and not attr.startswith("__")}
-            return json.dumps(data)
-        except TypeError:
-            return json.dumps(str(obj))
-
-def check_port(port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(('localhost', port)) == 0
+fxchain = [
+    create_effect(Convolution, "./impulse.wav", 0.5),
+    create_effect(Delay, delay_seconds=0.5, feedback=0.5, mix=0.4),
+    create_effect(Limiter)
+]
+fxchain_ids = [id for _, id in fxchain]
+board = Pedalboard([fx for fx, _ in fxchain])
 
 def run_electron(port='2811'):
     abspath = os.path.abspath(__file__)
@@ -153,6 +133,7 @@ async def websocket_handler(websocket, path):
     global recording, recording_start_time, effects_status, input_rms, output_rms
     try:
         while True:
+            # Формируем данные для отправки, включая ID каждого эффекта
             data = {
                 'recording': recording,
                 'recording_start_time': recording_start_time,
@@ -183,17 +164,18 @@ async def handle_post(request):
     data = await request.json()
 
     action = data.get("action")
-    effect_type = data.get("effect_type")
+    effect_id = data.get("effect_id")
     new_mix = data.get("mix")
 
     if action is not None:
         if action == "update_plugin_state":
-            if new_mix is not None and effect_type:
-                for effect in board:
-                    if effect.__class__.__name__ == effect_type and hasattr(effect, 'mix'):
+            if new_mix is not None and effect_id:
+                for index, effect in enumerate(board):
+                    current_id = fxchain_ids[index]
+                    if current_id == effect_id and hasattr(effect, 'mix'):
                         effect.mix = new_mix
                 update_effects_status()
-                return web.Response(text=f"Updated {effect_type} mix to: {new_mix}")
+                return web.Response(text=f"Updated {current_id} mix to: {new_mix}")
             return web.Response(text="Effect type or mix value not provided", status=400)
         elif action == "toggle_recording":
            toggle_recording()
@@ -228,8 +210,12 @@ def start_http_server_in_thread():
 
 # Main Flow and Entry Point
 def update_effects_status():
-    global effects_status
-    effects_status = [{'type': type(effect).__name__, 'state': json.loads(serialize(effect))} for effect in board]
+    global effects_status, fxchain_ids
+
+    effects_status = []
+    for index, effect in enumerate(board):
+        id = fxchain_ids[index]
+        effects_status.append({'id': id, 'type': type(effect).__name__, 'state': json.loads(serialize(effect))} )
 
 def audio_stream():
     try:
