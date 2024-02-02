@@ -13,6 +13,12 @@ from aiohttp import web
 import aiohttp_cors
 import websockets
 import webview
+import socket
+from ui.server import start_ui_server_in_thread 
+
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
 
 # Global Variables and Defaults
 sd.default.latency = 'low'
@@ -54,6 +60,16 @@ def serialize(obj):
         except TypeError:
             return json.dumps(str(obj))
 
+def check_port(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) == 0
+
+# Check if React app is running on port 2810
+if check_port(2810):
+    ui_dev_mode = True
+else:
+    ui_dev_mode = False
+
 # Audio Processing
 def callback(indata, outdata, frames, time, status):
     global input_rms, output_rms
@@ -93,7 +109,7 @@ def toggle_recording():
         save_recording()
 
 def save_recording():
-    global file_index
+    global file_index, recording_start_time
     recording_start_time = None
     timestamp = calendar.timegm(time.gmtime())
     file_name = os.path.join('recordings', f'recording-{timestamp}.wav')
@@ -138,15 +154,26 @@ async def handle_get(request):
 async def handle_post(request):
     global board
     data = await request.json()
+
+    action = data.get("action")
     effect_type = data.get("effect_type")
     new_mix = data.get("mix")
-    if new_mix is not None and effect_type:
-        for effect in board:
-            if effect.__class__.__name__ == effect_type and hasattr(effect, 'mix'):
-                effect.mix = new_mix
-        update_effects_status()
-        return web.Response(text=f"Updated {effect_type} mix to: {new_mix}")
-    return web.Response(text="Effect type or mix value not provided", status=400)
+
+    if action is not None:
+        if action == "update_plugin_state":
+            if new_mix is not None and effect_type:
+                for effect in board:
+                    if effect.__class__.__name__ == effect_type and hasattr(effect, 'mix'):
+                        effect.mix = new_mix
+                update_effects_status()
+                return web.Response(text=f"Updated {effect_type} mix to: {new_mix}")
+            return web.Response(text="Effect type or mix value not provided", status=400)
+        elif action == "toggle_recording":
+           toggle_recording()
+        else:
+            return web.Response(text="Action not recognized", status=400)
+    else:
+        return web.Response(text="Action not provided", status=400)
 
 
 async def start_http_server(loop):
@@ -192,8 +219,17 @@ async def main():
     update_effects_status()
     threading.Thread(target=start_websocket_server).start()
     threading.Thread(target=start_http_server_in_thread).start()
+
+    if not ui_dev_mode:
+        threading.Thread(target=start_ui_server_in_thread).start()
+    
     threading.Thread(target=audio_stream).start()
-    url = 'http://localhost:2810'
+
+    if not ui_dev_mode:
+        url = 'http://localhost:2811'
+    else:
+        url = 'http://localhost:2810'
+        
     window = webview.create_window('ResoBox', url)
     window.events.closed += lambda: os._exit(1)
     webview.start()
