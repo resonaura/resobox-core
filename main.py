@@ -8,7 +8,7 @@ import time
 import numpy as np
 import sounddevice as sd
 import soundfile as sf
-from pedalboard import Pedalboard, Convolution, Delay
+from pedalboard import Limiter, Pedalboard, Convolution, Delay
 from aiohttp import web
 import aiohttp_cors
 import websockets
@@ -31,6 +31,7 @@ window_size = 50  # Window size for RMS moving average
 board = Pedalboard([
     Convolution("./impulse.wav", 0.5),
     Delay(delay_seconds=0.5, feedback=0.5, mix=0.4),
+    Limiter()
 ])
 
 # Utility Functions
@@ -56,12 +57,23 @@ def serialize(obj):
 # Audio Processing
 def callback(indata, outdata, frames, time, status):
     global input_rms, output_rms
+
+    # Ensure indata is treated as stereo
+    if indata.shape[1] == 1:  # Mono input
+        # Duplicate the mono input across two channels to create a stereo effect
+        stereo_indata = np.hstack((indata, indata))
+    elif indata.shape[1] > 2:  # Если входных каналов больше двух
+        stereo_indata = indata[:, :2]  # Используем только первые два канала
+    else:
+        # Если каналов два или меньше, используем входные данные как есть
+        stereo_indata = indata
+
     if status:
         print(status)
-    processed_data = board(indata, sample_rate=44100, reset=False)
+    processed_data = board(stereo_indata, sample_rate=44100, reset=False)
     if len(processed_data) > 0:
         outdata[:len(processed_data)] = processed_data
-        input_rms_values.append(np.sqrt(np.mean(np.square(indata))))
+        input_rms_values.append(np.sqrt(np.mean(np.square(stereo_indata))))
         output_rms_values.append(np.sqrt(np.mean(np.square(processed_data))))
         input_rms = moving_average(input_rms_values, window_size)
         output_rms = moving_average(output_rms_values, window_size)
@@ -163,11 +175,11 @@ def start_http_server_in_thread():
 # Main Flow and Entry Point
 def update_effects_status():
     global effects_status
-    effects_status = [{'type': type(effect).__name__, 'effect': json.loads(serialize(effect))} for effect in board]
+    effects_status = [{'type': type(effect).__name__, 'state': json.loads(serialize(effect))} for effect in board]
 
 def audio_stream():
     try:
-        with sd.Stream(callback=callback, channels=2, latency=0, blocksize=128):
+        with sd.Stream(callback=callback, latency=0, blocksize=128, samplerate=44100):
             print("Press Space to start/stop recording, ESC to quit")
             while True:
                 time.sleep(0.1)
