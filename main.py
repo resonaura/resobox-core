@@ -11,9 +11,13 @@ import sounddevice as sd
 import soundfile as sf
 import aiohttp_cors
 import websockets
+import keyboard
+
+
 
 from pedalboard import Limiter, Pedalboard, Convolution, Delay
 from aiohttp import web
+from looper import Looper
 from utils import check_port, create_effect, moving_average, serialize
 from ui.server import start_ui_server_in_thread 
 
@@ -27,6 +31,12 @@ os.chdir(dname)
 
 # Global Variables and Defaults
 sd.default.latency = 'low'
+default_input = sd.default.device[0]
+default_output = sd.default.device[1]
+
+# Get device information
+input_info = sd.query_devices(default_input)
+output_info = sd.query_devices(default_output)
 
 q = queue.Queue()
 recording = False
@@ -40,8 +50,8 @@ output_rms_values = []
 window_size = 50  # Window size for RMS moving average
 
 fxchain = [
-    create_effect(Convolution, "./impulse.wav", 0.5),
-    create_effect(Delay, delay_seconds=0.5, feedback=0.5, mix=0.4),
+    create_effect(Convolution, "./impulse.wav", 0),
+    create_effect(Delay, delay_seconds=0.5, feedback=0.5, mix=0),
     create_effect(Limiter)
 ]
 fxchain_ids = [id for _, id in fxchain]
@@ -66,8 +76,10 @@ if check_port(2810):
 else:
     ui_dev_mode = False
 
-def callback(indata, outdata, frames, time, status):
-    global input_rms, output_rms
+looper = Looper(tracks=2)
+
+def callback(indata, outdata, frames, _time, status):
+    global input_rms, output_rms, looper
 
     # Handle mono to stereo conversion or ensure only two channels are used
     if indata.shape[1] == 1:  # Mono input
@@ -79,31 +91,38 @@ def callback(indata, outdata, frames, time, status):
 
     processed_data = board(stereo_indata, sample_rate=44100, reset=False)
 
-    # Ensure processed_data is compatible with outdata shape
-    if processed_data.shape[0] > outdata.shape[0]:
-        # If processed_data has more frames than outdata can handle, truncate it
-        processed_data = processed_data[:outdata.shape[0], :]
-    if processed_data.shape[1] != outdata.shape[1]:
+    looper.record(processed_data.copy(), frames)
+
+    looped_sound = looper.get_next_samples(frames, processed_data.shape)
+
+    # Смешивание аудио сигнала с sound.wav
+    mixed_data =  processed_data + looped_sound
+
+    # Ensure mixed_data is compatible with outdata shape
+    if mixed_data.shape[0] > outdata.shape[0]:
+        # If mixed_data has more frames than outdata can handle, truncate it
+        mixed_data = mixed_data[:outdata.shape[0], :]
+    if mixed_data.shape[1] != outdata.shape[1]:
         # If the channel count doesn't match, adjust it.
         # Assuming outdata requires stereo output (2 channels)
-        if processed_data.shape[1] == 1:  # Mono to Stereo
-            processed_data = np.tile(processed_data, (1, 2))
-        else:  # If processed_data has more than 2 channels, use only the first two
-            processed_data = processed_data[:, :2]
+        if mixed_data.shape[1] == 1:  # Mono to Stereo
+            mixed_data = np.tile(mixed_data, (1, 2))
+        else:  # If mixed_data has more than 2 channels, use only the first two
+            mixed_data = mixed_data[:, :2]
 
-    outdata[:processed_data.shape[0], :processed_data.shape[1]] = processed_data
+    outdata[:mixed_data.shape[0], :mixed_data.shape[1]] = mixed_data
 
     # Append RMS values and compute moving averages
-    if len(processed_data) > 0:
+    if len(mixed_data) > 0:
         input_rms_values.append(np.sqrt(np.mean(np.square(stereo_indata))))
-        output_rms_values.append(np.sqrt(np.mean(np.square(processed_data))))
+        output_rms_values.append(np.sqrt(np.mean(np.square(mixed_data))))
         input_rms = moving_average(input_rms_values, window_size)
         output_rms = moving_average(output_rms_values, window_size)
     else:
         outdata.fill(0.0)
 
     if recording:
-        q.put(processed_data.copy())
+        q.put(mixed_data.copy())
 
 def toggle_recording():
     global recording, recording_start_time, file_index
@@ -130,15 +149,20 @@ def save_recording():
 
 # WebSocket Handling
 async def websocket_handler(websocket, path):
-    global recording, recording_start_time, effects_status, input_rms, output_rms
+    global recording, recording_start_time, effects_status, input_rms, output_rms, looper
     try:
         while True:
             # Формируем данные для отправки, включая ID каждого эффекта
             data = {
+                'audio': {
+                    'input': input_info,
+                    'output': output_info
+                },
                 'recording': recording,
                 'recording_start_time': recording_start_time,
                 'output_rms': str(output_rms),
                 'input_rms': str(input_rms),
+                'looper': json.loads(looper.get_state()),
                 'effects': effects_status
             }
             await websocket.send(json.dumps(data))
@@ -157,10 +181,13 @@ def start_websocket_server():
 
 # HTTP Server Setup
 async def handle_get(request):
+    global looper
+    looper.toggle_playback()
     return web.Response(text="Hi from ResoBox, i'm alive!")
 
 async def handle_post(request):
     global board
+
     data = await request.json()
 
     action = data.get("action")
@@ -221,16 +248,54 @@ def audio_stream():
     try:
         with sd.Stream(callback=callback, latency=0, blocksize=128, samplerate=44100):
             while True:
-                time.sleep(0.1)
+                time.sleep(1)
     except KeyboardInterrupt:
         print("Interrupted by user")
     except Exception as e:
         print(f"Error: {e}")
 
+def key_press_handler():
+    global looper
+    while True:  # Бесконечный цикл для обработки нажатий клавиш
+        if keyboard.is_pressed(18):  # Начать запись на первой дорожке
+            print("Начинаем запись на первой дорожке...")
+            looper.start_recording(0)
+
+        elif keyboard.is_pressed(19):  # Остановить запись на первой дорожке
+            print("Останавливаем запись на первой дорожке...")
+            looper.stop_recording(0)
+
+        elif keyboard.is_pressed(20):  # Остановить запись на первой дорожке
+            print("Отменяем последнюю запись на первой дорожке...")
+            looper.remove_last_layer(0)
+
+        elif keyboard.is_pressed(21):  # Остановить запись на первой дорожке
+            print("Очищаем первую дорожку...")
+            looper.clear_all_layers(0)
+
+        elif keyboard.is_pressed(23):  # Начать запись на первой дорожке
+            print("Начинаем запись на второй дорожке...")
+            looper.start_recording(1)
+
+        elif keyboard.is_pressed(22):  # Остановить запись на первой дорожке
+            print("Останавливаем запись на второй дорожке...")
+            looper.stop_recording(1)
+
+        elif keyboard.is_pressed(26):  # Остановить запись на первой дорожке
+            print("Отменяем последнюю запись на второй дорожке...")
+            looper.remove_last_layer(1)
+
+        elif keyboard.is_pressed(28):  # Остановить запись на первой дорожке
+            print("Очищаем вторую дорожку...")
+            looper.clear_all_layers(1)
+
+        keyboard.read_key()
+
 async def main():
     update_effects_status()
     threading.Thread(target=start_websocket_server).start()
     threading.Thread(target=start_http_server_in_thread).start()
+    threading.Thread(target=key_press_handler, daemon=True).start()
 
     if not ui_dev_mode:
         threading.Thread(target=start_ui_server_in_thread).start()
