@@ -11,9 +11,6 @@ import sounddevice as sd
 import soundfile as sf
 import aiohttp_cors
 import websockets
-import keyboard
-
-
 
 from pedalboard import Limiter, Pedalboard, Convolution, Delay
 from aiohttp import web
@@ -254,48 +251,11 @@ def audio_stream():
     except Exception as e:
         print(f"Error: {e}")
 
-def key_press_handler():
-    global looper
-    while True:  # Бесконечный цикл для обработки нажатий клавиш
-        if keyboard.is_pressed(18):  # Начать запись на первой дорожке
-            print("Начинаем запись на первой дорожке...")
-            looper.start_recording(0)
-
-        elif keyboard.is_pressed(19):  # Остановить запись на первой дорожке
-            print("Останавливаем запись на первой дорожке...")
-            looper.stop_recording(0)
-
-        elif keyboard.is_pressed(20):  # Остановить запись на первой дорожке
-            print("Отменяем последнюю запись на первой дорожке...")
-            looper.remove_last_layer(0)
-
-        elif keyboard.is_pressed(21):  # Остановить запись на первой дорожке
-            print("Очищаем первую дорожку...")
-            looper.clear_all_layers(0)
-
-        elif keyboard.is_pressed(23):  # Начать запись на первой дорожке
-            print("Начинаем запись на второй дорожке...")
-            looper.start_recording(1)
-
-        elif keyboard.is_pressed(22):  # Остановить запись на первой дорожке
-            print("Останавливаем запись на второй дорожке...")
-            looper.stop_recording(1)
-
-        elif keyboard.is_pressed(26):  # Остановить запись на первой дорожке
-            print("Отменяем последнюю запись на второй дорожке...")
-            looper.remove_last_layer(1)
-
-        elif keyboard.is_pressed(28):  # Остановить запись на первой дорожке
-            print("Очищаем вторую дорожку...")
-            looper.clear_all_layers(1)
-
-        keyboard.read_key()
 
 async def main():
     update_effects_status()
     threading.Thread(target=start_websocket_server).start()
     threading.Thread(target=start_http_server_in_thread).start()
-    threading.Thread(target=key_press_handler, daemon=True).start()
 
     if not ui_dev_mode:
         threading.Thread(target=start_ui_server_in_thread).start()
