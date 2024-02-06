@@ -1,9 +1,13 @@
 import asyncio
 import shutil
 import subprocess
+import threading
+import time
 from aiohttp import web
 import aiohttp_cors
 import os
+
+from utils import check_port
 
 # Assuming your React app's build directory is copied to "webui" within your project directory
 async def handle_get(request):
@@ -89,8 +93,48 @@ async def start_ui_server(loop):
             # Change back to the original directory
             os.chdir(dname)
 
+def run_electron(port='2811'):
+    abspath = os.path.abspath(__file__)
+    dname = os.path.dirname(abspath)
+    os.chdir(dname)
+    
+    # Start the Electron app as a subprocess
+    # Pass the port as an environment variable
+    process = subprocess.Popen(f'npm run electron --port {port}', shell=True)
+
+    # Wait for the Electron process to terminate
+    process.wait()
+    os._exit(1)
 
 def start_ui_server_in_thread():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(start_ui_server(loop))
+
+def start_ui():
+    # Check if React app is running on port 2810
+    if check_port(2810):
+        ui_dev_mode = True
+    else:
+        ui_dev_mode = False
+        
+    if not ui_dev_mode:
+        target_port = 2811
+    else:
+        target_port = 2810
+
+    if not ui_dev_mode:
+        threading.Thread(target=start_ui_server_in_thread).start()
+
+    need_retry = True
+    while need_retry:
+        port_exists = check_port(target_port)
+        if port_exists:
+            need_retry = False
+        else:
+            time.sleep(1)
+        
+    run_electron(target_port)
+
+    while True:
+        time.sleep(5)

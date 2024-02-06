@@ -3,7 +3,6 @@ import calendar
 import json
 import os
 import queue
-import subprocess
 import threading
 import time
 import numpy as np
@@ -15,8 +14,8 @@ import websockets
 from pedalboard import Limiter, Pedalboard, Convolution, Delay
 from aiohttp import web
 from looper import Looper
-from utils import check_port, create_effect, moving_average, serialize
-from ui.server import start_ui_server_in_thread 
+from utils import create_effect, moving_average, serialize
+from ui.server import start_ui 
 
 
 print(sd.query_devices())
@@ -53,25 +52,6 @@ fxchain = [
 ]
 fxchain_ids = [id for _, id in fxchain]
 board = Pedalboard([fx for fx, _ in fxchain])
-
-def run_electron(port='2811'):
-    abspath = os.path.abspath(__file__)
-    dname = os.path.dirname(abspath)
-    os.chdir(dname)
-    
-    # Start the Electron app as a subprocess
-    # Pass the port as an environment variable
-    process = subprocess.Popen(f'npm run electron --port {port}', shell=True)
-
-    # Wait for the Electron process to terminate
-    process.wait()
-    os._exit(1)
-
-# Check if React app is running on port 2810
-if check_port(2810):
-    ui_dev_mode = True
-else:
-    ui_dev_mode = False
 
 looper = Looper(tracks=2)
 
@@ -241,7 +221,14 @@ def update_effects_status():
         id = fxchain_ids[index]
         effects_status.append({'id': id, 'type': type(effect).__name__, 'state': json.loads(serialize(effect))} )
 
-def audio_stream():
+
+async def main():
+    update_effects_status()
+    threading.Thread(target=start_websocket_server).start()
+    threading.Thread(target=start_http_server_in_thread).start()
+
+    threading.Thread(target=start_ui).start()
+    
     try:
         with sd.Stream(callback=callback, latency=0, blocksize=128, samplerate=44100):
             while True:
@@ -250,35 +237,6 @@ def audio_stream():
         print("Interrupted by user")
     except Exception as e:
         print(f"Error: {e}")
-
-
-async def main():
-    update_effects_status()
-    threading.Thread(target=start_websocket_server).start()
-    threading.Thread(target=start_http_server_in_thread).start()
-
-    if not ui_dev_mode:
-        threading.Thread(target=start_ui_server_in_thread).start()
-    
-    threading.Thread(target=audio_stream).start()
-    
-    if not ui_dev_mode:
-        target_port = 2811
-    else:
-        target_port = 2810
-
-    need_retry = True
-    while need_retry:
-        port_exists = check_port(target_port)
-        if port_exists:
-            need_retry = False
-        else:
-            time.sleep(1)
-        
-    run_electron(target_port)
-
-    while True:
-        time.sleep(0.1)
 
 if __name__ == '__main__':
     asyncio.run(main())

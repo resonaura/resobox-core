@@ -2,9 +2,6 @@ import json
 import threading
 import numpy as np
 import time
-import soundfile as sf
-import sounddevice as sd
-import queue
 
 from utils import serialize
 
@@ -15,6 +12,7 @@ class Layer:
         self.record_start_time = elapsed  # Time when recording started for this layer
         self.sample_rate = sample_rate  # Sample rate to calculate time offsets
         self.is_first_record = True
+        self.modified = False
 
         if elapsed is not None:
             self.record(initial_samples, elapsed, buffer_size)
@@ -37,6 +35,12 @@ class Layer:
 
         # Добавляем новые сэмплы после тишины
         self.samples.append(new_samples)
+        self.modified = True
+
+    def check_and_reset_modified(self):
+        was_modified = self.modified
+        self.modified = False
+        return was_modified
 
     def get_samples(self):
         """Get samples from this layer."""
@@ -51,7 +55,7 @@ class Layer:
 class Track:
     def __init__(self, sample_rate):
         self.sample_rate = sample_rate
-        self.is_playing = True  # Playback state flag
+        self.is_playing = False  # Playback state flag
         self.is_recording = False  # Recording state flag
         self.layers = []
         self.audio_len = 0
@@ -104,6 +108,14 @@ class Track:
                     self.add_layer(is_recording=True, sample_rate=self.sample_rate, initial_samples=new_samples, elapsed=elapsed, buffer_size=buffer_size)
                     break
 
+    # Add a method to check if any layer is currently recording
+    def is_any_layer_recording(self):
+        return any(layer.is_recording for layer in self.layers)
+
+    # Add a method to check if the track needs mixing (i.e., any layer has been modified)
+    def needs_mixing(self):
+        return any(layer.check_and_reset_modified() for layer in self.layers)
+
     def start_recording(self):
         if not self.is_recording:
             self.is_recording = True
@@ -133,8 +145,8 @@ class Track:
 class Looper:
     def __init__(self, sample_rate=44100, tracks=1):
         self.sample_rate = sample_rate
-        self.is_playing = True  # Playback state flag
-        self.start_time = time.time()
+        self.is_playing = False  # Playback state flag
+        self.start_time = None
         self.tracks = [Track(sample_rate) for _ in range(tracks)]
         self.mixed_samples_buffer = []
         self.mixing_lock = threading.Lock()  # Lock for thread-safe operations on the mixed_samples_buffer
@@ -162,6 +174,17 @@ class Looper:
            with self.mixing_lock:
                 layers_samples = []
                 max_len = 0
+                needs_mixing = False
+
+                # Determine if mixing is needed
+                for track in self.tracks:
+                    if track.is_playing and track.needs_mixing() and not track.is_any_layer_recording():
+                        needs_mixing = True
+                        break
+
+                if not needs_mixing:
+                    time.sleep(0.1)  # Sleep if no mixing is needed
+                    continue
 
                 # Step 1: Determine the maximum length among all tracks.
                 for track in self.tracks:
@@ -259,6 +282,9 @@ class Looper:
             self.tracks[track_index].stop_recording()
 
     def get_next_samples(self, frames, indata_shape):
+        if not self.is_playing:
+            return np.zeros((frames, 2))
+        
         current_time = time.time()
         seconds_from_play_start = current_time - self.start_time
 
