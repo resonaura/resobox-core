@@ -26,9 +26,9 @@ dname = os.path.dirname(abspath)
 os.chdir(dname)
 
 # Global Variables and Defaults
-sd.default.latency = 'low'
-default_input = sd.default.device[1]
-default_output = sd.default.device[1]
+#sd.default.latency = 'low'
+default_input = sd.default.device[0]
+default_output = sd.default.device[0]
 
 # Get device information
 input_info = sd.query_devices(default_input)
@@ -230,7 +230,7 @@ async def main():
     #threading.Thread(target=start_ui).start()
     
     try:
-        with sd.Stream(callback=callback, latency=0, blocksize=128, samplerate=48000, device=(1,1)):
+        with sd.Stream(callback=callback, blocksize=128, samplerate=48000, device=(1,1)):
             while True:
                 time.sleep(10000)
     except KeyboardInterrupt:
