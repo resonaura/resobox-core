@@ -229,7 +229,7 @@ async def main():
     threading.Thread(target=start_ui).start()
     
     try:
-        with sd.Stream(callback=callback, latency=0, blocksize=128, samplerate=48000, device=(1,1)):
+        with sd.Stream(callback=callback, latency=0, blocksize=128, channels=2, samplerate=48000, device=(1,1)):
             while True:
                 time.sleep(10000)
     except KeyboardInterrupt:
