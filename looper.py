@@ -6,7 +6,7 @@ import time
 from utils import serialize
 
 class Layer:
-    def __init__(self, sample_rate=44100, is_recording=False, initial_samples=[], elapsed=None, buffer_size=128):
+    def __init__(self, sample_rate=48000, is_recording=False, initial_samples=[], elapsed=None, buffer_size=128):
         self.samples = []  # Samples for this layer
         self.is_recording = is_recording  # Is this layer currently recording
         self.record_start_time = elapsed  # Time when recording started for this layer
@@ -143,7 +143,7 @@ class Track:
                 self.layers.pop()  # Удаляем последний слой
 
 class Looper:
-    def __init__(self, sample_rate=44100, tracks=1):
+    def __init__(self, sample_rate=48000, tracks=1):
         self.sample_rate = sample_rate
         self.is_playing = False  # Playback state flag
         self.start_time = None
