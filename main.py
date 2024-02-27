@@ -227,8 +227,14 @@ def main():
     
     try:
         with sd.Stream(callback=callback, samplerate=48000, device=(1,1), channels=2):
-            while True:
-                time.sleep(10000)
+            print('#' * 80)
+
+            print('Press Return to quit')
+
+            print('#' * 80)
+
+            input()
+
     except KeyboardInterrupt:
         print("Interrupted by user")
     except Exception as e:
