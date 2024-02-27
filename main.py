@@ -27,8 +27,8 @@ os.chdir(dname)
 
 # Global Variables and Defaults
 sd.default.latency = 'low'
-default_input = sd.default.device[0]
-default_output = sd.default.device[0]
+default_input = sd.default.device[1]
+default_output = sd.default.device[1]
 
 # Get device information
 input_info = sd.query_devices(default_input)
@@ -55,9 +55,50 @@ board = Pedalboard([fx for fx, _ in fxchain])
 looper = Looper(tracks=2)
 
 def callback(indata, outdata, frames, _time, status):
-    mixed = board(indata, sample_rate=48000, reset=False)
+    global input_rms, output_rms, looper
 
-    outdata[:] = mixed
+    # Handle mono to stereo conversion or ensure only two channels are used
+    if indata.shape[1] == 1:  # Mono input
+        stereo_indata = np.hstack((indata, indata))
+    elif indata.shape[1] > 2:  # More than two input channels
+        stereo_indata = indata[:, :2]  # Use only the first two channels
+    else:
+        stereo_indata = indata  # Two channels, use as is
+
+    processed_data = board(stereo_indata, sample_rate=48000, reset=False)
+
+    looper.record(processed_data.copy(), frames)
+
+    looped_sound = looper.get_next_samples(frames, processed_data.shape)
+
+    # Смешивание аудио сигнала с sound.wav
+    mixed_data =  processed_data + looped_sound
+
+    # Ensure mixed_data is compatible with outdata shape
+    if mixed_data.shape[0] > outdata.shape[0]:
+        # If mixed_data has more frames than outdata can handle, truncate it
+        mixed_data = mixed_data[:outdata.shape[0], :]
+    if mixed_data.shape[1] != outdata.shape[1]:
+        # If the channel count doesn't match, adjust it.
+        # Assuming outdata requires stereo output (2 channels)
+        if mixed_data.shape[1] == 1:  # Mono to Stereo
+            mixed_data = np.tile(mixed_data, (1, 2))
+        else:  # If mixed_data has more than 2 channels, use only the first two
+            mixed_data = mixed_data[:, :2]
+
+    outdata[:mixed_data.shape[0], :mixed_data.shape[1]] = mixed_data
+
+    # Append RMS values and compute moving averages
+    if len(mixed_data) > 0:
+        input_rms_values.append(np.sqrt(np.mean(np.square(stereo_indata))))
+        output_rms_values.append(np.sqrt(np.mean(np.square(mixed_data))))
+        input_rms = moving_average(input_rms_values, window_size)
+        output_rms = moving_average(output_rms_values, window_size)
+    else:
+        outdata.fill(0.0)
+
+    if recording:
+        q.put(mixed_data.copy())
 
 def toggle_recording():
     global recording, recording_start_time, file_index
@@ -180,27 +221,21 @@ def update_effects_status():
         effects_status.append({'id': id, 'type': type(effect).__name__, 'state': json.loads(serialize(effect))} )
 
 
-def main():
+async def main():
     update_effects_status()
-    #threading.Thread(target=start_websocket_server).start()
-    #threading.Thread(target=start_http_server_in_thread).start()
+    threading.Thread(target=start_websocket_server).start()
+    threading.Thread(target=start_http_server_in_thread).start()
 
-    #threading.Thread(target=start_ui).start()
+    threading.Thread(target=start_ui).start()
     
     try:
-        with sd.Stream(callback=callback, samplerate=48000, device=(1,1), channels=2):
-            print('#' * 80)
-
-            print('Press Return to quit')
-
-            print('#' * 80)
-
-            input()
-
+        with sd.Stream(callback=callback, latency=0, blocksize=128, samplerate=48000, device=(1,1)):
+            while True:
+                time.sleep(10000)
     except KeyboardInterrupt:
         print("Interrupted by user")
     except Exception as e:
         print(f"Error: {e}")
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
