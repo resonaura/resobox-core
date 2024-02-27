@@ -224,8 +224,8 @@ def update_effects_status():
 
 def main():
     update_effects_status()
-    threading.Thread(target=start_websocket_server).start()
-    threading.Thread(target=start_http_server_in_thread).start()
+    #threading.Thread(target=start_websocket_server).start()
+    #threading.Thread(target=start_http_server_in_thread).start()
 
     #threading.Thread(target=start_ui).start()
     
