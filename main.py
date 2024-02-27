@@ -56,46 +56,7 @@ board = Pedalboard([fx for fx, _ in fxchain])
 looper = Looper(tracks=2)
 
 def callback(indata, outdata, frames, _time, status):
-    global input_rms, output_rms, looper
-
-    # Handle mono to stereo conversion or ensure only two channels are used
-    if indata.shape[1] == 1:  # Mono input
-        stereo_indata = np.hstack((indata, indata))
-    elif indata.shape[1] > 2:  # More than two input channels
-        stereo_indata = indata[:, :2]  # Use only the first two channels
-    else:
-        stereo_indata = indata  # Two channels, use as is
-
-    processed_data = board(stereo_indata, sample_rate=48000, reset=False)
-
-    # Смешивание аудио сигнала с sound.wav
-    mixed_data =  indata
-
-    # Ensure mixed_data is compatible with outdata shape
-    if mixed_data.shape[0] > outdata.shape[0]:
-        # If mixed_data has more frames than outdata can handle, truncate it
-        mixed_data = mixed_data[:outdata.shape[0], :]
-    if mixed_data.shape[1] != outdata.shape[1]:
-        # If the channel count doesn't match, adjust it.
-        # Assuming outdata requires stereo output (2 channels)
-        if mixed_data.shape[1] == 1:  # Mono to Stereo
-            mixed_data = np.tile(mixed_data, (1, 2))
-        else:  # If mixed_data has more than 2 channels, use only the first two
-            mixed_data = mixed_data[:, :2]
-
-    outdata[:mixed_data.shape[0], :mixed_data.shape[1]] = mixed_data
-
-    # Append RMS values and compute moving averages
-    if len(mixed_data) > 0:
-        input_rms_values.append(np.sqrt(np.mean(np.square(stereo_indata))))
-        output_rms_values.append(np.sqrt(np.mean(np.square(mixed_data))))
-        input_rms = moving_average(input_rms_values, window_size)
-        output_rms = moving_average(output_rms_values, window_size)
-    else:
-        outdata.fill(0.0)
-
-    if recording:
-        q.put(mixed_data.copy())
+    outdata[:] = indata
 
 def toggle_recording():
     global recording, recording_start_time, file_index
