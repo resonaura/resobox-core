@@ -73,7 +73,7 @@ def callback(indata, outdata, frames, _time, status):
     looped_sound = looper.get_next_samples(frames, processed_data.shape)
 
     # Смешивание аудио сигнала с sound.wav
-    mixed_data =  processed_data + looped_sound
+    mixed_data =  processed_data
 
     # Ensure mixed_data is compatible with outdata shape
     if mixed_data.shape[0] > outdata.shape[0]:
@@ -230,7 +230,7 @@ def main():
     #threading.Thread(target=start_ui).start()
     
     try:
-        with sd.Stream(callback=callback, blocksize=256, samplerate=48000, device=(1,1), channels=2):
+        with sd.Stream(callback=callback, blocksize=128, samplerate=48000, device=(1,1), channels=2):
             while True:
                 time.sleep(10000)
     except KeyboardInterrupt:
