@@ -56,7 +56,9 @@ board = Pedalboard([fx for fx, _ in fxchain])
 looper = Looper(tracks=2)
 
 def callback(indata, outdata, frames, _time, status):
-    outdata[:] = indata
+    mixed = board(indata, sample_rate=48000, reset=False)
+
+    outdata[:] = mixed
 
 def toggle_recording():
     global recording, recording_start_time, file_index
