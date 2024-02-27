@@ -26,7 +26,7 @@ dname = os.path.dirname(abspath)
 os.chdir(dname)
 
 # Global Variables and Defaults
-#sd.default.latency = 'low'
+sd.default.latency = 'low'
 default_input = sd.default.device[0]
 default_output = sd.default.device[0]
 
