@@ -68,10 +68,6 @@ def callback(indata, outdata, frames, _time, status):
 
     processed_data = board(stereo_indata, sample_rate=48000, reset=False)
 
-    looper.record(processed_data.copy(), frames)
-
-    looped_sound = looper.get_next_samples(frames, processed_data.shape)
-
     # Смешивание аудио сигнала с sound.wav
     mixed_data =  processed_data
 
