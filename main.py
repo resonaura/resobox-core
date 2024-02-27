@@ -226,7 +226,7 @@ def main():
     #threading.Thread(target=start_ui).start()
     
     try:
-        with sd.Stream(callback=callback, blocksize=128, samplerate=48000, device=(1,1), channels=2):
+        with sd.Stream(callback=callback, samplerate=48000, device=(1,1), channels=2):
             while True:
                 time.sleep(10000)
     except KeyboardInterrupt:
