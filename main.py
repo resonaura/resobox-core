@@ -69,7 +69,7 @@ def callback(indata, outdata, frames, _time, status):
     processed_data = board(stereo_indata, sample_rate=48000, reset=False)
 
     # Смешивание аудио сигнала с sound.wav
-    mixed_data =  processed_data
+    mixed_data =  indata
 
     # Ensure mixed_data is compatible with outdata shape
     if mixed_data.shape[0] > outdata.shape[0]:
