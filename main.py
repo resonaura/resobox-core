@@ -27,8 +27,8 @@ os.chdir(dname)
 
 # Global Variables and Defaults
 sd.default.latency = 'low'
-default_input = sd.default.device[0]
-default_output = sd.default.device[0]
+default_input = sd.default.device[1]
+default_output = sd.default.device[1]
 
 # Get device information
 input_info = sd.query_devices(default_input)
@@ -227,10 +227,10 @@ async def main():
     threading.Thread(target=start_websocket_server).start()
     threading.Thread(target=start_http_server_in_thread).start()
 
-    threading.Thread(target=start_ui).start()
+    #threading.Thread(target=start_ui).start()
     
     try:
-        with sd.Stream(callback=callback, latency=0, blocksize=128, samplerate=48000, device=(0,0)):
+        with sd.Stream(callback=callback, latency=0, blocksize=128, samplerate=48000, device=(1,1)):
             while True:
                 time.sleep(10000)
     except KeyboardInterrupt:
