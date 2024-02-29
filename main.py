@@ -46,7 +46,6 @@ output_rms_values = []
 window_size = 50  # Window size for RMS moving average
 
 fxchain = [
-    create_effect(Convolution, "./impulse.wav", 0.5),
     create_effect(Delay, delay_seconds=0.5, feedback=0.5, mix=0.5),
     create_effect(Limiter)
 ]
