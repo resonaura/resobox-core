@@ -226,7 +226,7 @@ async def main():
     threading.Thread(target=start_websocket_server).start()
     threading.Thread(target=start_http_server_in_thread).start()
 
-    threading.Thread(target=start_ui).start()
+    #threading.Thread(target=start_ui).start()
     
     try:
         with sd.Stream(callback=callback, channels=2, samplerate=48000, device=(1,1)):
