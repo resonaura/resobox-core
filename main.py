@@ -11,7 +11,7 @@ import soundfile as sf
 import aiohttp_cors
 import websockets
 
-from pedalboard import Limiter, Pedalboard, Convolution, Delay, Reverb
+from pedalboard import Limiter, Pedalboard, Convolution, Delay
 from aiohttp import web
 from looper import Looper
 from utils import create_effect, moving_average, serialize
@@ -46,7 +46,7 @@ output_rms_values = []
 window_size = 50  # Window size for RMS moving average
 
 fxchain = [
-    create_effect(Reverb, room_size=0.25),
+    create_effect(Convolution, "./impulse.wav", 0.5),
     create_effect(Delay, delay_seconds=0.5, feedback=0.5, mix=0.5),
     create_effect(Limiter)
 ]
