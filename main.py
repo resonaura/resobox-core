@@ -66,7 +66,7 @@ def callback(indata, outdata, frames, _time, status):
     else:
         stereo_indata = indata  # Two channels, use as is
 
-    processed_data = board(stereo_indata, sample_rate=48000, reset=False)
+    processed_data = board(stereo_indata, sample_rate=44100, reset=False)
 
     looper.record(processed_data.copy(), frames)
 
@@ -121,7 +121,7 @@ def save_recording():
     while not q.empty():
         data_to_save.append(q.get())
     data_to_save = np.concatenate(data_to_save, axis=0)
-    sf.write(file_name, data_to_save, 48000, subtype='PCM_24')
+    sf.write(file_name, data_to_save, 44100, subtype='PCM_24')
     print(f"File saved as '{file_name}'")
 
 # WebSocket Handling
@@ -222,7 +222,7 @@ def update_effects_status():
         effects_status.append({'id': id, 'type': type(effect).__name__, 'state': json.loads(serialize(effect))} )
 
 
-async def main():
+def main():
     #update_effects_status()
     #threading.Thread(target=start_websocket_server).start()
     #threading.Thread(target=start_http_server_in_thread).start()
@@ -230,7 +230,7 @@ async def main():
     #threading.Thread(target=start_ui).start()
     
     try:
-        with sd.Stream(callback=callback, channels=2, samplerate=48000, device=(1,1)):
+        with sd.Stream(callback=callback, channels=2, samplerate=44100, device=(1,1)):
             while True:
                 time.sleep(10000)
     except KeyboardInterrupt:
