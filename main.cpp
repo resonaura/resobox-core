@@ -58,14 +58,14 @@ int main() {
     PaStream *stream;
 
     PaStreamParameters inputParameters;
-    inputParameters.device = 0; // or specify a device index
+    inputParameters.device = 1; // or specify a device index
     inputParameters.channelCount = 1; // mono input
     inputParameters.sampleFormat = paFloat32; // 32-bit floating point input
     inputParameters.suggestedLatency = Pa_GetDeviceInfo(inputParameters.device)->defaultLowInputLatency;
     inputParameters.hostApiSpecificStreamInfo = NULL;
 
     PaStreamParameters outputParameters;
-    outputParameters.device = 0; // or specify a device index
+    outputParameters.device = 1; // or specify a device index
     outputParameters.channelCount = 2; // stereo output
     outputParameters.sampleFormat = paFloat32; // 32-bit floating point output
     outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
