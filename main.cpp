@@ -13,14 +13,7 @@ static int audioCallback(const void *inputBuffer, void *outputBuffer,
 
     float sumSquares = 0.0; // Для накопления суммы квадратов сэмплов для расчета RMS
 
-    // Простая пересылка данных и расчет RMS
-    for (unsigned long i = 0; i < framesPerBuffer; i++) {
-        *out++ = *in; // Пересылка данных
-        
-        // Расчет суммы квадратов для RMS
-        sumSquares += (*in) * (*in);
-        in++;
-    }
+    *out = *in;
 
     // Расчет и вывод RMS
     float rms = sqrt(sumSquares / framesPerBuffer);
@@ -59,7 +52,7 @@ int main() {
 
     PaStreamParameters inputParameters;
     inputParameters.device = 1; // or specify a device index
-    inputParameters.channelCount = 1; // mono input
+    inputParameters.channelCount = 2; // mono input
     inputParameters.sampleFormat = paFloat32; // 32-bit floating point input
     inputParameters.suggestedLatency = Pa_GetDeviceInfo(inputParameters.device)->defaultLowInputLatency;
     inputParameters.hostApiSpecificStreamInfo = NULL;
@@ -79,7 +72,7 @@ int main() {
                                &inputParameters,          // Количество входных каналов
                                &outputParameters,          // Количество выходных каналов
                                44100,  // 32 бита с плавающей точкой
-                               256,        // Фреймов на буфер
+                               128,        // Фреймов на буфер
                                paClipOff,  // Функция обратного вызова
                                audioCallback, NULL);   // Без пользовательских данных
 
