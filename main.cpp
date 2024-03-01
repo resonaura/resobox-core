@@ -37,15 +37,32 @@ int main() {
     }
 
     PaStream *stream;
+
+    PaStreamParameters inputParameters;
+    inputParameters.device = 0; // or specify a device index
+    inputParameters.channelCount = 1; // mono input
+    inputParameters.sampleFormat = paFloat32; // 32-bit floating point input
+    inputParameters.suggestedLatency = Pa_GetDeviceInfo(inputParameters.device)->defaultLowInputLatency;
+    inputParameters.hostApiSpecificStreamInfo = NULL;
+
+    PaStreamParameters outputParameters;
+    outputParameters.device = 0; // or specify a device index
+    outputParameters.channelCount = 2; // stereo output
+    outputParameters.sampleFormat = paFloat32; // 32-bit floating point output
+    outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
+    outputParameters.hostApiSpecificStreamInfo = NULL;
+
+
+    
+
     // Открытие стандартного потока с одним входным и выходным каналом, с плавающей точкой, 44100 Гц, 256 фреймов на буфер и использованием нашей функции обратного вызова
-    err = Pa_OpenDefaultStream(&stream,
-                               2,          // Количество входных каналов
-                               2,          // Количество выходных каналов
-                               paInt16,  // 32 бита с плавающей точкой
-                               48000,      // Частота дискретизации
+    err = Pa_OpenStream(&stream,
+                               &inputParameters,          // Количество входных каналов
+                               &outputParameters,          // Количество выходных каналов
+                               48000,  // 32 бита с плавающей точкой
                                256,        // Фреймов на буфер
-                               audioCallback,  // Функция обратного вызова
-                               nullptr);   // Без пользовательских данных
+                               paClipOff,  // Функция обратного вызова
+                               audioCallback, NULL);   // Без пользовательских данных
 
     if (err != paNoError) {
         std::cerr << "PortAudio error: " << Pa_GetErrorText(err) << std::endl;
