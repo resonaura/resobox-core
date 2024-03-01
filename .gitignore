@@ -2,3 +2,4 @@ recording*.wav
 ui/build
 __pycache__
 node_modules
+build
