@@ -1,18 +1,18 @@
 {
-    "name": "resobox-core",
-    "version": "1.0.0",
-    "description": "A Node.js project for running Python scripts",
-    "main": "index.js",
-    "scripts": {
-      "start": "python3 main.py",
-      "electron": "electron ./ui/electron",
-      "install": "pip install -r requirements.txt"
-    },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "devDependencies": {
-      "electron": "^28.2.1"
-    }
+  "name": "resobox-core",
+  "version": "1.0.0",
+  "description": "A Node.js project for running Python scripts",
+  "main": "index.js",
+  "scripts": {
+    "build": "mkdir -p build && g++ -o build/app main.cpp -I/opt/homebrew/include -L/opt/homebrew/lib -lportaudio -v",
+    "start-compiled": "cd build && ./app",
+    "start": "npm run build && npm run start-compiled",
+    "electron": "electron ./ui/electron"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^28.2.1"
   }
-  
+}
