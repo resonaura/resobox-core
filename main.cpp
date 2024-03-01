@@ -36,6 +36,25 @@ int main() {
         return 1;
     }
 
+    int numDevices = Pa_GetDeviceCount();
+    if (numDevices < 0) {
+        printf("ERROR: Pa_CountDevices returned 0x%x\n", numDevices);
+        err = numDevices;
+    }
+
+    printf("Number of devices = %d\n", numDevices);
+    for (int i = 0; i < numDevices; i++) {
+        const PaDeviceInfo *deviceInfo = Pa_GetDeviceInfo(i);
+        printf("---------------------------------------\n");
+        printf("Device #%d: %s\n", i, deviceInfo->name);
+        printf("Max Input Channels: %d\n", deviceInfo->maxInputChannels);
+        printf("Max Output Channels: %d\n", deviceInfo->maxOutputChannels);
+        printf("Default Sample Rate: %f\n", deviceInfo->defaultSampleRate);
+        // Add more device properties here as needed.
+    }
+    printf("---------------------------------------\n");
+
+
     PaStream *stream;
 
     PaStreamParameters inputParameters;
