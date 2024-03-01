@@ -4,8 +4,10 @@
   "description": "A Node.js project for running Python scripts",
   "main": "index.js",
   "scripts": {
-    "build": "mkdir -p build && g++ -o build/app main.cpp -I/opt/homebrew/include -L/opt/homebrew/lib -lportaudio -v",
+    "build-mac": "mkdir -p build && g++ -o build/app main.cpp -I/opt/homebrew/include -L/opt/homebrew/lib -lportaudio",
+    "build": "mkdir -p build && g++ -o build/app main.cpp -lportaudio",
     "start-compiled": "cd build && ./app",
+    "mac": "npm run build-mac && npm run start-compiled",
     "start": "npm run build && npm run start-compiled",
     "electron": "electron ./ui/electron"
   },
