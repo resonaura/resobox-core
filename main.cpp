@@ -7,20 +7,28 @@ static int audioCallback(const void *inputBuffer, void *outputBuffer,
                          const PaStreamCallbackTimeInfo* timeInfo,
                          PaStreamCallbackFlags statusFlags,
                          void *userData) {
-    // Приведение типов входного и выходного буферов к float
+    // Получаем данные о количестве входных каналов
+    int inputChannelCount = 1;
+
     const float *in = (const float*)inputBuffer;
     float *out = (float*)outputBuffer;
 
-    float sumSquares = 0.0; // Для накопления суммы квадратов сэмплов для расчета RMS
-
-    *out = *in;
-
-    // Расчет и вывод RMS
-    float rms = sqrt(sumSquares / framesPerBuffer);
-    std::cout << "RMS: " << rms << std::endl;
+    for(unsigned long i = 0; i < framesPerBuffer; ++i) {
+        if (inputChannelCount == 1) {
+            // Для моно входа копируем сэмпл в оба канала выхода
+            float monoSample = *in++;
+            *out++ = monoSample; // Левый канал
+            *out++ = monoSample; // Правый канал
+        } else if (inputChannelCount == 2) {
+            // Для стерео входа копируем сэмплы напрямую
+            *out++ = *in++; // Левый канал
+            *out++ = *in++; // Правый канал
+        }
+    }
 
     return paContinue;
 }
+
 
 int main() {
     PaError err = Pa_Initialize();
@@ -52,16 +60,16 @@ int main() {
 
     PaStreamParameters inputParameters;
     inputParameters.device = 1; // or specify a device index
-    inputParameters.channelCount = 2; // mono input
+    inputParameters.channelCount = 1; // mono input
     inputParameters.sampleFormat = paFloat32; // 32-bit floating point input
-    inputParameters.suggestedLatency = Pa_GetDeviceInfo(inputParameters.device)->defaultLowInputLatency;
+    inputParameters.suggestedLatency = 0;
     inputParameters.hostApiSpecificStreamInfo = NULL;
 
     PaStreamParameters outputParameters;
     outputParameters.device = 1; // or specify a device index
     outputParameters.channelCount = 2; // stereo output
     outputParameters.sampleFormat = paFloat32; // 32-bit floating point output
-    outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
+    outputParameters.suggestedLatency = 0;
     outputParameters.hostApiSpecificStreamInfo = NULL;
 
 
@@ -72,7 +80,7 @@ int main() {
                                &inputParameters,          // Количество входных каналов
                                &outputParameters,          // Количество выходных каналов
                                44100,  // 32 бита с плавающей точкой
-                               128,        // Фреймов на буфер
+                               64,        // Фреймов на буфер
                                paClipOff,  // Функция обратного вызова
                                audioCallback, NULL);   // Без пользовательских данных
 
