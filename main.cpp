@@ -1,34 +1,58 @@
+#include <kfr/all.hpp>
+#include <sndfile.h>
+#include <vector>
 #include <iostream>
 #include <portaudio.h>
-#include <cmath> // Для использования sqrt() для расчета RMS
+#include <cmath> // For using sqrt() for RMS calculations
+
+// Correctly load an impulse response into a kfr::univector
+kfr::univector<float> loadImpulseResponse(const std::string& filepath) {
+    SF_INFO sfinfo;
+    SNDFILE* file = sf_open(filepath.c_str(), SFM_READ, &sfinfo);
+    if (!file) {
+        std::cerr << "Error opening file: " << filepath << std::endl;
+        return {};
+    }
+
+    if (sfinfo.channels > 1) {
+        std::cerr << "Warning: Impulse response is not mono. Only the first channel will be used." << std::endl;
+    }
+
+    std::vector<float> buffer(sfinfo.frames);
+    sf_count_t numFrames = sf_readf_float(file, buffer.data(), sfinfo.frames);
+
+    if (numFrames < sfinfo.frames) {
+        std::cerr << "Error reading file: " << filepath << std::endl;
+        sf_close(file);
+        return {};
+    }
+
+    sf_close(file);
+
+    // Create a univector from the buffer
+    return kfr::univector<float>(buffer.begin(), buffer.end());
+}
+
+// Initialize convolution engine correctly
+auto impulseResponse = loadImpulseResponse("imp.wav");
 
 static int audioCallback(const void *inputBuffer, void *outputBuffer,
                          unsigned long framesPerBuffer,
                          const PaStreamCallbackTimeInfo* timeInfo,
                          PaStreamCallbackFlags statusFlags,
                          void *userData) {
-    // Получаем данные о количестве входных каналов
-    int inputChannelCount = 2;
+    auto* in = static_cast<const float*>(inputBuffer);
+    auto* out = static_cast<float*>(outputBuffer);
 
-    const float *in = (const float*)inputBuffer;
-    float *out = (float*)outputBuffer;
+    // Correct usage of univectors for input and output
+    kfr::univector<float> input(in, in + framesPerBuffer);
+    auto output = kfr::convolve(input, impulseResponse); // Adjust this line based on how you actually apply the convolution
 
-    for(unsigned long i = 0; i < framesPerBuffer; ++i) {
-        if (inputChannelCount == 1) {
-            // Для моно входа копируем сэмпл в оба канала выхода
-            float monoSample = *in++;
-            *out++ = monoSample; // Левый канал
-            *out++ = monoSample; // Правый канал
-        } else if (inputChannelCount == 2) {
-            // Для стерео входа копируем сэмплы напрямую
-            *out++ = *in++; // Левый канал
-            *out++ = *in++; // Правый канал
-        }
-    }
+    // Copy processed data to outputBuffer
+    std::copy(output.begin(), output.end(), out);
 
     return paContinue;
 }
-
 
 int main() {
     PaError err = Pa_Initialize();
