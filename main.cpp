@@ -8,7 +8,7 @@ static int audioCallback(const void *inputBuffer, void *outputBuffer,
                          PaStreamCallbackFlags statusFlags,
                          void *userData) {
     // Получаем данные о количестве входных каналов
-    int inputChannelCount = 1;
+    int inputChannelCount = 2;
 
     const float *in = (const float*)inputBuffer;
     float *out = (float*)outputBuffer;
@@ -60,7 +60,7 @@ int main() {
 
     PaStreamParameters inputParameters;
     inputParameters.device = 1; // or specify a device index
-    inputParameters.channelCount = 1; // mono input
+    inputParameters.channelCount = 2; // mono input
     inputParameters.sampleFormat = paFloat32; // 32-bit floating point input
     inputParameters.suggestedLatency = 0;
     inputParameters.hostApiSpecificStreamInfo = NULL;
