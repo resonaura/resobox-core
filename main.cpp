@@ -1,29 +1,70 @@
 #include <iostream>
 #include <portaudio.h>
 #include <cmath> // Для использования sqrt() для расчета RMS
+#include <math.h>
 
-#define DELAY_BUFFER_SIZE 44100  // Размер буфера дилея, 1 секунда при 44.1 кГц
+#define SAMPLE_RATE 44100  // Размер буфера дилея, 1 секунда при 44.1 кГц
 
-static float delayBufferLeft[DELAY_BUFFER_SIZE];
-static float delayBufferRight[DELAY_BUFFER_SIZE];
+static float delayBufferLeft[SAMPLE_RATE];
+static float delayBufferRight[SAMPLE_RATE];
 static int writeIndex = 0;  // Индекс записи для буфера дилея
 
-void applyDelay(float &inLeft, float &inRight, float &outLeft, float &outRight, float delayTimeMs, float feedback) {
-    int readIndex = (writeIndex - static_cast<int>(delayTimeMs * 44.1)) % DELAY_BUFFER_SIZE;  // Вычисляем индекс чтения
+// Глобальные переменные для фазера
+const int PHASER_STAGES = 1024; // Количество стадий всепропускающих фильтров
+float phaserBufferLeft[PHASER_STAGES] = {0};
+float phaserBufferRight[PHASER_STAGES] = {0};
+float lfoPhase = 0; // Фаза низкочастотного осциллятора
+
+void applyPhaser(float &inLeft, float &inRight, float &outLeft, float &outRight, 
+                 float rate, float depth, float feedback, float mix) {
+    // Обновляем фазу LFO
+    lfoPhase += rate;
+    if (lfoPhase > 1.0f) lfoPhase -= 1.0f;
+
+    // Вычисляем модулированное смещение для фазы
+    float lfo = (1 + cos(2 * M_PI * lfoPhase)) / 2; // LFO в диапазоне [0,1]
+    float modulatedDepth = lfo * depth;
+
+    // Входной сигнал с добавлением обратной связи
+    float processedLeft = inLeft + phaserBufferLeft[PHASER_STAGES - 1] * feedback;
+    float processedRight = inRight + phaserBufferRight[PHASER_STAGES - 1] * feedback;
+
+    // Проход через цепочку всепропускающих фильтров
+    for (int i = 0; i < PHASER_STAGES; ++i) {
+        float oldLeft = phaserBufferLeft[i];
+        float oldRight = phaserBufferRight[i];
+
+        phaserBufferLeft[i] = processedLeft + oldLeft * modulatedDepth;
+        phaserBufferRight[i] = processedRight + oldRight * modulatedDepth;
+
+        processedLeft = oldLeft - phaserBufferLeft[i] * modulatedDepth;
+        processedRight = oldRight - phaserBufferRight[i] * modulatedDepth;
+    }
+
+    // Смешиваем обработанный сигнал с оригинальным
+    outLeft = mix * processedLeft + (1 - mix) * inLeft;
+    outRight = mix * processedRight + (1 - mix) * inRight;
+}
+
+void applyDelay(float &inLeft, float &inRight, float &outLeft, float &outRight, float delayTimeMs, float feedback, float mix) {
+    int readIndex = (writeIndex - static_cast<int>(delayTimeMs * 44.1)) % SAMPLE_RATE;  // Вычисляем индекс чтения
     if (readIndex < 0) {
-        readIndex += DELAY_BUFFER_SIZE;  // Убедимся, что индекс чтения положительный
+        readIndex += SAMPLE_RATE;  // Убедимся, что индекс чтения положительный
     }
 
     // Применяем дилей
-    outLeft = delayBufferLeft[readIndex] + inLeft;
-    outRight = delayBufferRight[readIndex] + inRight;
+    float processedSampleLeft = delayBufferLeft[readIndex];
+    float processedSampleRight = delayBufferRight[readIndex];
+
+    outLeft = inLeft * (1 - mix) + processedSampleLeft * mix;
+    outRight = inRight * (1 - mix) + processedSampleRight * mix;
 
     // Записываем семплы в буфер дилея
     delayBufferLeft[writeIndex] = outLeft * feedback;
     delayBufferRight[writeIndex] = outRight * feedback;
 
     // Инкрементируем индекс записи
-    writeIndex = (writeIndex + 1) % DELAY_BUFFER_SIZE;
+    writeIndex = (writeIndex + 1) % SAMPLE_RATE;
 }
 
 static int audioCallback(const void *inputBuffer, void *outputBuffer,
@@ -37,7 +78,7 @@ static int audioCallback(const void *inputBuffer, void *outputBuffer,
     float *out = (float*)outputBuffer;
 
     for(unsigned long i = 0; i < framesPerBuffer; ++i) {
-        float inLeft, inRight, outLeft, outRight;
+        float inLeft, inRight, doutLeft, doutRight, outLeft, outRight;
 
         // Чтение входных семплов
         inLeft = *in++;
@@ -48,7 +89,8 @@ static int audioCallback(const void *inputBuffer, void *outputBuffer,
         }
 
         // Применяем дилей
-        applyDelay(inLeft, inRight, outLeft, outRight, 500, 0.5);
+        applyDelay(inLeft, inRight, doutLeft, doutRight, 500, 0.5, 0.5);
+        applyPhaser(doutLeft, doutRight, outLeft, outRight, 1, 0.7, 0.15, .5);
 
         // Записываем семплы в выходной буфер
         *out++ = outLeft;
