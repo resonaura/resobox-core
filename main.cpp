@@ -90,11 +90,11 @@ static int audioCallback(const void *inputBuffer, void *outputBuffer,
 
         // Применяем дилей
         applyDelay(inLeft, inRight, doutLeft, doutRight, 500, 0.5, 0.5);
-        // applyPhaser(doutLeft, doutRight, outLeft, outRight, 1, 0.7, 0.15, .5);
+        applyPhaser(doutLeft, doutRight, outLeft, outRight, 1, 0.7, 0.15, .5);
 
         // Записываем семплы в выходной буфер
-        *out++ = doutLeft;
-        *out++ = doutRight;
+        *out++ = outLeft;
+        *out++ = outRight;
     }
 
     return paContinue;
