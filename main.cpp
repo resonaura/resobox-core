@@ -90,11 +90,11 @@ static int audioCallback(const void *inputBuffer, void *outputBuffer,
 
         // Применяем дилей
         applyDelay(inLeft, inRight, doutLeft, doutRight, 500, 0.5, 0.5);
-        applyPhaser(doutLeft, doutRight, outLeft, outRight, 1, 0.7, 0.15, .5);
+        // applyPhaser(doutLeft, doutRight, outLeft, outRight, 1, 0.7, 0.15, .5);
 
         // Записываем семплы в выходной буфер
-        *out++ = outLeft;
-        *out++ = outRight;
+        *out++ = doutLeft;
+        *out++ = doutRight;
     }
 
     return paContinue;
@@ -129,14 +129,14 @@ int main() {
     PaStream *stream;
 
     PaStreamParameters inputParameters;
-    inputParameters.device = 8; // or specify a device index
+    inputParameters.device = 1; // or specify a device index
     inputParameters.channelCount = 1; // mono input
     inputParameters.sampleFormat = paFloat32; // 32-bit floating point input
     inputParameters.suggestedLatency = 0;
     inputParameters.hostApiSpecificStreamInfo = NULL;
 
     PaStreamParameters outputParameters;
-    outputParameters.device = 8; // or specify a device index
+    outputParameters.device = 1; // or specify a device index
     outputParameters.channelCount = 2; // stereo output
     outputParameters.sampleFormat = paFloat32; // 32-bit floating point output
     outputParameters.suggestedLatency = 0;
