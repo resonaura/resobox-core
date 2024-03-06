@@ -72,7 +72,7 @@ static int audioCallback(const void *inputBuffer, void *outputBuffer,
                          const PaStreamCallbackTimeInfo* timeInfo,
                          PaStreamCallbackFlags statusFlags,
                          void *userData) {
-    int inputChannelCount = 2;
+    int inputChannelCount = 1;
 
     const float *in = (const float*)inputBuffer;
     float *out = (float*)outputBuffer;
