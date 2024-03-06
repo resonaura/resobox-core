@@ -31,7 +31,7 @@ static int audioCallback(const void *inputBuffer, void *outputBuffer,
                          const PaStreamCallbackTimeInfo* timeInfo,
                          PaStreamCallbackFlags statusFlags,
                          void *userData) {
-    int inputChannelCount = 1;
+    int inputChannelCount = 2;
 
     const float *in = (const float*)inputBuffer;
     float *out = (float*)outputBuffer;
@@ -87,14 +87,14 @@ int main() {
     PaStream *stream;
 
     PaStreamParameters inputParameters;
-    inputParameters.device = 3; // or specify a device index
-    inputParameters.channelCount = 1; // mono input
+    inputParameters.device = 1; // or specify a device index
+    inputParameters.channelCount = 2; // mono input
     inputParameters.sampleFormat = paFloat32; // 32-bit floating point input
     inputParameters.suggestedLatency = 0;
     inputParameters.hostApiSpecificStreamInfo = NULL;
 
     PaStreamParameters outputParameters;
-    outputParameters.device = 2; // or specify a device index
+    outputParameters.device = 1; // or specify a device index
     outputParameters.channelCount = 2; // stereo output
     outputParameters.sampleFormat = paFloat32; // 32-bit floating point output
     outputParameters.suggestedLatency = 0;
