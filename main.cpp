@@ -1,55 +1,59 @@
-#include <kfr/all.hpp>
-#include <sndfile.h>
-#include <vector>
 #include <iostream>
 #include <portaudio.h>
-#include <cmath> // For using sqrt() for RMS calculations
+#include <cmath> // Для использования sqrt() для расчета RMS
 
-// Correctly load an impulse response into a kfr::univector
-kfr::univector<float> loadImpulseResponse(const std::string& filepath) {
-    SF_INFO sfinfo;
-    SNDFILE* file = sf_open(filepath.c_str(), SFM_READ, &sfinfo);
-    if (!file) {
-        std::cerr << "Error opening file: " << filepath << std::endl;
-        return {};
+#define DELAY_BUFFER_SIZE 44100  // Размер буфера дилея, 1 секунда при 44.1 кГц
+
+static float delayBufferLeft[DELAY_BUFFER_SIZE];
+static float delayBufferRight[DELAY_BUFFER_SIZE];
+static int writeIndex = 0;  // Индекс записи для буфера дилея
+
+void applyDelay(float &inLeft, float &inRight, float &outLeft, float &outRight, float delayTimeMs, float feedback) {
+    int readIndex = (writeIndex - static_cast<int>(delayTimeMs * 44.1)) % DELAY_BUFFER_SIZE;  // Вычисляем индекс чтения
+    if (readIndex < 0) {
+        readIndex += DELAY_BUFFER_SIZE;  // Убедимся, что индекс чтения положительный
     }
 
-    if (sfinfo.channels > 1) {
-        std::cerr << "Warning: Impulse response is not mono. Only the first channel will be used." << std::endl;
-    }
+    // Применяем дилей
+    outLeft = delayBufferLeft[readIndex] + inLeft;
+    outRight = delayBufferRight[readIndex] + inRight;
 
-    std::vector<float> buffer(sfinfo.frames);
-    sf_count_t numFrames = sf_readf_float(file, buffer.data(), sfinfo.frames);
+    // Записываем семплы в буфер дилея
+    delayBufferLeft[writeIndex] = outLeft * feedback;
+    delayBufferRight[writeIndex] = outRight * feedback;
 
-    if (numFrames < sfinfo.frames) {
-        std::cerr << "Error reading file: " << filepath << std::endl;
-        sf_close(file);
-        return {};
-    }
-
-    sf_close(file);
-
-    // Create a univector from the buffer
-    return kfr::univector<float>(buffer.begin(), buffer.end());
+    // Инкрементируем индекс записи
+    writeIndex = (writeIndex + 1) % DELAY_BUFFER_SIZE;
 }
-
-// Initialize convolution engine correctly
-auto impulseResponse = loadImpulseResponse("imp.wav");
 
 static int audioCallback(const void *inputBuffer, void *outputBuffer,
                          unsigned long framesPerBuffer,
                          const PaStreamCallbackTimeInfo* timeInfo,
                          PaStreamCallbackFlags statusFlags,
                          void *userData) {
-    auto* in = static_cast<const float*>(inputBuffer);
-    auto* out = static_cast<float*>(outputBuffer);
+    int inputChannelCount = 1;
 
-    // Correct usage of univectors for input and output
-    kfr::univector<float> input(in, in + framesPerBuffer);
-    auto output = kfr::convolve(input, impulseResponse); // Adjust this line based on how you actually apply the convolution
+    const float *in = (const float*)inputBuffer;
+    float *out = (float*)outputBuffer;
 
-    // Copy processed data to outputBuffer
-    std::copy(output.begin(), output.end(), out);
+    for(unsigned long i = 0; i < framesPerBuffer; ++i) {
+        float inLeft, inRight, outLeft, outRight;
+
+        // Чтение входных семплов
+        inLeft = *in++;
+        if (inputChannelCount == 2) {
+            inRight = *in++;
+        } else {
+            inRight = inLeft;  // Для моно сигнала копируем левый канал в правый
+        }
+
+        // Применяем дилей
+        applyDelay(inLeft, inRight, outLeft, outRight, 500, 0.5);
+
+        // Записываем семплы в выходной буфер
+        *out++ = outLeft;
+        *out++ = outRight;
+    }
 
     return paContinue;
 }
@@ -83,14 +87,14 @@ int main() {
     PaStream *stream;
 
     PaStreamParameters inputParameters;
-    inputParameters.device = 1; // or specify a device index
-    inputParameters.channelCount = 2; // mono input
+    inputParameters.device = 3; // or specify a device index
+    inputParameters.channelCount = 1; // mono input
     inputParameters.sampleFormat = paFloat32; // 32-bit floating point input
     inputParameters.suggestedLatency = 0;
     inputParameters.hostApiSpecificStreamInfo = NULL;
 
     PaStreamParameters outputParameters;
-    outputParameters.device = 1; // or specify a device index
+    outputParameters.device = 2; // or specify a device index
     outputParameters.channelCount = 2; // stereo output
     outputParameters.sampleFormat = paFloat32; // 32-bit floating point output
     outputParameters.suggestedLatency = 0;
