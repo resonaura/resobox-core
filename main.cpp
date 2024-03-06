@@ -130,7 +130,7 @@ int main() {
 
     PaStreamParameters inputParameters;
     inputParameters.device = 0; // or specify a device index
-    inputParameters.channelCount = 2; // mono input
+    inputParameters.channelCount = 1; // mono input
     inputParameters.sampleFormat = paFloat32; // 32-bit floating point input
     inputParameters.suggestedLatency = 0;
     inputParameters.hostApiSpecificStreamInfo = NULL;
