@@ -1,12 +1,12 @@
 import jack
-from pedalboard import Pedalboard, Convolution, Chorus
+from pedalboard import Pedalboard, Convolution, Chorus, Reverb
 import numpy
 
 
 client = jack.Client("InputToOutputRouter")
 
 # Создание Pedalboard с эффектами
-board = Pedalboard([Convolution('impulse_responses_masonic_lodge.wav', 0.5), Chorus()])
+board = Pedalboard([Convolution('impulse_responses_masonic_lodge.wav', 0.5), Chorus(), Reverb(room_size=1, wet_level=0.1)])
 
 # Create two ports for stereo input and output
 
