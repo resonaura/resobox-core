@@ -69,11 +69,11 @@ try:
 
     
 
-    if len(capture_ports) >= 1 and len(playback_ports) >= 2:
+    if len(capture_ports) >= 2 and len(playback_ports) >= 2:
 
         client.connect(capture_ports[0], inport1.name)
 
-        client.connect(capture_ports[0], inport2.name)
+        client.connect(capture_ports[1], inport2.name)
 
         client.connect(outport1.name, playback_ports[0])
 
