@@ -13,7 +13,7 @@ import websockets
 
 from pedalboard import Limiter, Pedalboard, Convolution, Delay
 from aiohttp import web
-from looper import Looper
+from resobox.app.core.old.looper import Looper
 from utils import create_effect, moving_average, serialize
 from ui.server import start_ui 
 

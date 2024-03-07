@@ -4,9 +4,7 @@
   "description": "A Node.js project for running Python scripts",
   "main": "index.js",
   "scripts": {
-    "build": "mkdir -p build && clang++ -std=c++17 -o build/app main.cpp -march=native -lsndfile -lportaudio",
-    "start-compiled": "cd build && ./app",  
-    "start": "npm run build && npm run start-compiled",
+    "start": "python3 main.py",
     "electron": "electron ./ui/electron"
   },
   "keywords": [],
