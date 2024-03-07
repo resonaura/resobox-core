@@ -6,7 +6,7 @@ import numpy
 client = jack.Client("InputToOutputRouter")
 
 # Создание Pedalboard с эффектами
-board = Pedalboard([Convolution('impulse.wav', 0.5)])
+board = Pedalboard([Convolution('echo_hall.wav', 0.5)])
 
 # Create two ports for stereo input and output
 
