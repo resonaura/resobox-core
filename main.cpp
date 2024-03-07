@@ -7,7 +7,11 @@
 
 static float delayBufferLeft[SAMPLE_RATE];
 static float delayBufferRight[SAMPLE_RATE];
-static int writeIndex = 0;  // Индекс записи для буфера дилея
+static int delayWriteIndex = 0;  // Индекс записи для буфера дилея
+
+static float reverbBufferLeft[SAMPLE_RATE];
+static float reverbBufferRight[SAMPLE_RATE];
+static int reverbWriteIndex = 0;
 
 // Глобальные переменные для фазера
 const int PHASER_STAGES = 1024; // Количество стадий всепропускающих фильтров
@@ -15,7 +19,7 @@ float phaserBufferLeft[PHASER_STAGES] = {0};
 float phaserBufferRight[PHASER_STAGES] = {0};
 float lfoPhase = 0; // Фаза низкочастотного осциллятора
 
-void applyPhaser(float &inLeft, float &inRight, float &outLeft, float &outRight, 
+void applySpringReverb(float &inLeft, float &inRight, float &outLeft, float &outRight, 
                  float rate, float depth, float feedback, float mix) {
     // Обновляем фазу LFO
     lfoPhase += rate;
@@ -47,24 +51,28 @@ void applyPhaser(float &inLeft, float &inRight, float &outLeft, float &outRight,
 }
 
 void applyDelay(float &inLeft, float &inRight, float &outLeft, float &outRight, float delayTimeMs, float feedback, float mix) {
-    int readIndex = (writeIndex - static_cast<int>(delayTimeMs * 44.1)) % SAMPLE_RATE;  // Вычисляем индекс чтения
-    if (readIndex < 0) {
-        readIndex += SAMPLE_RATE;  // Убедимся, что индекс чтения положительный
+    int delayReadIndex = (delayWriteIndex - static_cast<int>(delayTimeMs * 44.1)) % SAMPLE_RATE;  // Вычисляем индекс чтения
+    if (delayReadIndex < 0) {
+        delayReadIndex += SAMPLE_RATE;  // Убедимся, что индекс чтения положительный
     }
 
     // Применяем дилей
-    float processedSampleLeft = delayBufferLeft[readIndex];
-    float processedSampleRight = delayBufferRight[readIndex];
+    float processedSampleLeft = delayBufferLeft[delayReadIndex];
+    float processedSampleRight = delayBufferRight[delayReadIndex];
 
     outLeft = inLeft * (1 - mix) + processedSampleLeft * mix;
     outRight = inRight * (1 - mix) + processedSampleRight * mix;
 
     // Записываем семплы в буфер дилея
-    delayBufferLeft[writeIndex] = outLeft * feedback;
-    delayBufferRight[writeIndex] = outRight * feedback;
+    delayBufferLeft[delayWriteIndex] = outLeft * feedback;
+    delayBufferRight[delayWriteIndex] = outRight * feedback;
 
     // Инкрементируем индекс записи
-    writeIndex = (writeIndex + 1) % SAMPLE_RATE;
+    delayWriteIndex = (delayWriteIndex + 1) % SAMPLE_RATE;
+}
+
+void applyReverb(float &inLeft, float &inRight, float &outLeft, float &outRight, float reverbTimeMs, float decay, float mix) {
+    return applyDelay(inLeft, inRight, outLeft, outRight, 100, 1.5, 0.5);
 }
 
 static int audioCallback(const void *inputBuffer, void *outputBuffer,
@@ -78,7 +86,7 @@ static int audioCallback(const void *inputBuffer, void *outputBuffer,
     float *out = (float*)outputBuffer;
 
     for(unsigned long i = 0; i < framesPerBuffer; ++i) {
-        float inLeft, inRight, doutLeft, doutRight, outLeft, outRight;
+        float inLeft, inRight, delayOutputLeft, delayOutputRight, outLeft, outRight;
 
         // Чтение входных семплов
         inLeft = *in++;
@@ -89,12 +97,12 @@ static int audioCallback(const void *inputBuffer, void *outputBuffer,
         }
 
         // Применяем дилей
-        applyDelay(inLeft, inRight, doutLeft, doutRight, 500, 0.5, 0.5);
-        // applyPhaser(doutLeft, doutRight, outLeft, outRight, 1, 0.7, 0.15, .5);
+        applyDelay(inLeft, inRight, delayOutputLeft, delayOutputRight, 500, 0.5, .5);
+        applySpringReverb(delayOutputLeft, delayOutputRight, outLeft, outRight, 50, 0.5, 0.2, 1);
 
         // Записываем семплы в выходной буфер
-        *out++ = doutLeft;
-        *out++ = doutRight;
+        *out++ = outLeft;
+        *out++ = outRight;
     }
 
     return paContinue;
@@ -129,14 +137,14 @@ int main() {
     PaStream *stream;
 
     PaStreamParameters inputParameters;
-    inputParameters.device = 0; // or specify a device index
+    inputParameters.device = 3; // or specify a device index
     inputParameters.channelCount = 1; // mono input
     inputParameters.sampleFormat = paFloat32; // 32-bit floating point input
     inputParameters.suggestedLatency = 0;
     inputParameters.hostApiSpecificStreamInfo = NULL;
 
     PaStreamParameters outputParameters;
-    outputParameters.device = 0; // or specify a device index
+    outputParameters.device = 2; // or specify a device index
     outputParameters.channelCount = 2; // stereo output
     outputParameters.sampleFormat = paFloat32; // 32-bit floating point output
     outputParameters.suggestedLatency = 0;
