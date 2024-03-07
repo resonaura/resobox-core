@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "python3 main.py",
+    "dev": "python3 main.py --no-ui",
+    "audio": "python3 main.py --no-ui --no-socket --no-backend",
     "electron": "electron ./ui/electron"
   },
   "keywords": [],

@@ -1,8 +1,21 @@
 import jack
 import numpy
 import threading
-from pedalboard import Pedalboard, Convolution, Chorus, Reverb
+import argparse
+
+import config
+
 from ui.server import start_ui 
+from realtime import start_websocket_server
+from backend import start_http_server_in_thread
+from utils import moving_average
+
+# Настроим парсер аргументов командной строки
+parser = argparse.ArgumentParser(description="🎛 ResoBox Audio Processor")
+parser.add_argument('--no-ui', action='store_true', help="Disable UI server startup")
+parser.add_argument('--no-socket', action='store_true', help="Disable WebSocket backend startup")
+parser.add_argument('--no-backend', action='store_true', help="Disable HTTP backend startup")
+args = parser.parse_args()
 
 
 client = jack.Client("ResoBox")
@@ -14,16 +27,12 @@ output_port_l = client.outports.register("output_1")
 output_port_r = client.outports.register("output_2")
 
 
-board = Pedalboard([
-    Convolution('impulse_responses_masonic_lodge.wav', 0.5),
-    Chorus(),
-    Reverb(room_size=1, wet_level=0.1)
-])
 
+window_size = 50  # Window size for RMS moving average
 
 @client.set_process_callback
 def process(buffer):
-    global board  # Assuming 'board' is your Pedalboard instance
+    global config  # Assuming 'board' is your Pedalboard instance
     sampleRate = client.samplerate
 
     # Convert input buffer to numpy array with appropriate type
@@ -33,7 +42,12 @@ def process(buffer):
     stereo_audio = numpy.stack([input_l, input_r], axis=-1)
 
     # Process audio through the pedalboard
-    processed_audio = board(stereo_audio, sampleRate, 8192, False).astype(numpy.float32)
+    processed_audio = config.board(stereo_audio, sampleRate, 8192, False).astype(numpy.float32)
+
+    config.input_rms_values.append(numpy.sqrt(numpy.mean(numpy.square(stereo_audio))))
+    config.output_rms_values.append(numpy.sqrt(numpy.mean(numpy.square(processed_audio))))
+    config.input_rms = moving_average(config.input_rms_values, window_size)
+    config.output_rms = moving_average(config.output_rms_values, window_size)
 
     # Output processed audio
     output_port_l.get_buffer()[:] = processed_audio[:, 0].tobytes()
@@ -82,7 +96,18 @@ try:
 
         print("🛑 Not enough capture or playback ports available")
 
-    threading.Thread(target=start_ui).start()
+
+    
+    config.update_effects_status()
+
+    if not args.no_ui:
+        threading.Thread(target=start_ui).start()
+    
+    if not args.no_socket:
+        threading.Thread(target=start_websocket_server).start()
+
+    if not args.no_backend:
+        threading.Thread(target=start_http_server_in_thread).start()
 
     # Keep the client running
     input("\n🤍 Press Enter to stop...\n")
