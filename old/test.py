@@ -22,20 +22,9 @@ outport2 = client.outports.register("output_2")
 @client.set_process_callback
 
 def process(frames):
-    global board  # Assuming 'board' is your Pedalboard instance
-    sample_rate = client.samplerate
+    outport1.get_buffer()[:] = inport1.get_buffer()[:]
 
-    # Convert input buffer to numpy array with appropriate type
-    in1 = numpy.frombuffer(inport1.get_buffer(), dtype=numpy.float32)
-    in2 = numpy.frombuffer(inport2.get_buffer(), dtype=numpy.float32)
-    stereo_audio = numpy.stack([in1, in2], axis=-1)
-
-    # Process audio through the pedalboard
-    processed_audio = board(stereo_audio, sample_rate, 8192, False).astype(numpy.float32)
-
-    # Output processed audio
-    outport1.get_buffer()[:] = processed_audio[:, 0].tobytes()
-    outport2.get_buffer()[:] = processed_audio[:, 1].tobytes()
+    outport2.get_buffer()[:] = inport2.get_buffer()[:]
 
 
 @client.set_xrun_callback
