@@ -75,7 +75,7 @@ async def start_ui_server(loop):
     if os.path.exists('build'):
         await host()
     else:
-        print("🎈 UI build directory does not exist, attempting to build...")
+        print("🎈 UI build directory does not exist, attempting to build...\n")
         ui_project_path = os.path.join(dname, '../../ui/')  # Adjust the path to your UI project
         try:
             # Navigate to the UI project directory and run npm build
@@ -84,10 +84,10 @@ async def start_ui_server(loop):
             subprocess.check_call(['npm', 'run', 'build'])  # Replace 'npm build' with 'npm run build' if needed
             # Copy build directory to the desired location
             shutil.copytree(os.path.join(ui_project_path, 'build'), build_path)
-            print("✅ Successfully built and copied the UI build directory.")
+            print("✅ Successfully built and copied the UI build directory.\n")
             await host()
         except Exception as e:
-            print(f"🛑 Failed to build the UI: {e}")
+            print(f"🛑 Failed to build the UI: {e}\n")
             os._exit(1)
         finally:
             # Change back to the original directory

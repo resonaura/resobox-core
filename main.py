@@ -85,7 +85,7 @@ try:
     threading.Thread(target=start_ui).start()
 
     # Keep the client running
-    input("🤍 Press Enter to stop...\n")
+    input("\n🤍 Press Enter to stop...\n")
 
 finally:
 
