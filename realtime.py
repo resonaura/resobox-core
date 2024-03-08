@@ -30,7 +30,7 @@ async def websocket_handler(websocket, path):
 
 async def websocket_server():
     print("\n✨ WebSocket started\n")
-    async with websockets.serve(websocket_handler, 'localhost', 8765):
+    async with websockets.serve(websocket_handler, '0.0.0.0', 8765):
         await asyncio.Future()  # Run forever
 
 def start_websocket_server():
