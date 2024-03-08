@@ -16,7 +16,7 @@ import config
 from aiohttp import web
 
 async def handle_get(request):
-    return web.Response(text="Hi from ResoBox, i'm alive!")
+    return web.Response(text="🎛 Hi from ResoBox, i'm alive! (maybe)")
 
 async def handle_post(request):
     global board
