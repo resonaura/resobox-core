@@ -16,8 +16,6 @@ import config
 from aiohttp import web
 
 async def handle_get(request):
-    global looper
-    looper.toggle_playback()
     return web.Response(text="Hi from ResoBox, i'm alive!")
 
 async def handle_post(request):
