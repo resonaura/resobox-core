@@ -61,7 +61,7 @@ async def start_http_server(loop):
         cors.add(route)
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, 'localhost', 8766)
+    site = web.TCPSite(runner, '0.0.0.0', 8766)
     await site.start()
     await asyncio.Event().wait()
 
