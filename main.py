@@ -8,6 +8,7 @@ import config
 from ui.server import start_ui 
 from realtime import start_websocket_server
 from backend import start_http_server_in_thread
+from graphics import start_graphics_server
 from utils import moving_average
 
 # Настроим парсер аргументов командной строки
@@ -15,6 +16,7 @@ parser = argparse.ArgumentParser(description="🎛 ResoBox Audio Processor")
 parser.add_argument('--no-ui', action='store_true', help="Disable UI server startup")
 parser.add_argument('--no-socket', action='store_true', help="Disable WebSocket backend startup")
 parser.add_argument('--no-backend', action='store_true', help="Disable HTTP backend startup")
+parser.add_argument('--no-graphics', action='store_true', help="Disable Graphics backend startup")
 args = parser.parse_args()
 
 
@@ -25,10 +27,6 @@ input_port_l = client.inports.register("input_1")
 input_port_r = client.inports.register("input_2")
 output_port_l = client.outports.register("output_1")
 output_port_r = client.outports.register("output_2")
-
-
-
-window_size = 50  # Window size for RMS moving average
 
 @client.set_process_callback
 def process(buffer):
@@ -46,8 +44,8 @@ def process(buffer):
 
     config.input_rms_values.append(numpy.sqrt(numpy.mean(numpy.square(stereo_audio))))
     config.output_rms_values.append(numpy.sqrt(numpy.mean(numpy.square(processed_audio))))
-    config.input_rms = moving_average(config.input_rms_values, window_size)
-    config.output_rms = moving_average(config.output_rms_values, window_size)
+    config.input_rms = moving_average(config.input_rms_values, config.window_size)
+    config.output_rms = moving_average(config.output_rms_values, config.window_size)
 
     # Output processed audio
     output_port_l.get_buffer()[:] = processed_audio[:, 0].tobytes()
@@ -108,6 +106,9 @@ try:
 
     if not args.no_backend:
         threading.Thread(target=start_http_server_in_thread).start()
+
+    if not args.no_graphics:
+        threading.Thread(target=start_graphics_server).start()
 
     # Keep the client running
     input("\n🤍 Press Enter to stop...\n")

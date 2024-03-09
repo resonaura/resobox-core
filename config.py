@@ -10,8 +10,10 @@ effects_status = []
 input_rms = 0
 output_rms = 0
 
+window_size = 50  # Window size for RMS moving average
+
 fxchain = [
-    create_effect(Convolution, 'impulse_responses_masonic_lodge.wav', 0.5),
+    create_effect(Convolution, 'assets/impulses/masonic.wav', 0.5),
     create_effect(Chorus),
     create_effect(Delay, delay_seconds=0.5, feedback=0.5, mix=0.5),
     create_effect(Reverb, room_size=1, wet_level=0.1)
