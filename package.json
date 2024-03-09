@@ -8,7 +8,9 @@
     "start": "python3 main.py --no-ui",
     "dev": "python3 main.py --no-ui",
     "audio": "python3 main.py --no-ui --no-socket --no-backend --no-graphics",
-    "electron": "electron ./ui/electron"
+    "electron": "electron ./ui/electron",
+    "jack": "jackd -d alsa -r 44100 -p 128 -i 2 -o 2",
+    "jack-mac": "jackd -d coreaudio -r 44100 -p 128 -i 1 -o 2"
   },
   "keywords": [],
   "author": "",

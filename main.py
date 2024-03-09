@@ -7,7 +7,7 @@ from multiprocessing import freeze_support, Process, current_process
 # Предполагаем, что эти модули у вас есть
 from ui.server import start_ui 
 from realtime import start_websocket_server
-from backend import start_http_server_in_thread
+from webhost import start_http_server_in_thread
 from graphics import start_graphics_server
 from audio import start_audio_server
 

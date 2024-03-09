@@ -28,7 +28,7 @@ async def handle_post(request):
                 return web.Response(text=f"Updated {current_id} mix to: {new_mix}")
             return web.Response(text="Effect type or mix value not provided", status=400)
         elif action == "toggle_recording":
-           print('Not available yet')
+           print('🛑 Not available yet')
         else:
             return web.Response(text="Action not recognized", status=400)
     else:

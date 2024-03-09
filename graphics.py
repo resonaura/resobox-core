@@ -66,9 +66,9 @@ async def websocket_handler(websocket, path):
             await websocket.send(json.dumps(global_matrix))
             await asyncio.sleep(1/24)  # Ожидание для синхронизации с частотой обновления матрицы
     except websockets.exceptions.ConnectionClosedOK:
-        print("WebSocket connection closed normally.")
+        print("🛑 WebSocket connection closed normally.")
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        print(f"🛑 WebSocket error: {e}")
 
 def start_update_matrix_thread():
     executor = ThreadPoolExecutor(max_workers=1)

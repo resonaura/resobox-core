@@ -24,9 +24,9 @@ async def websocket_handler(websocket, path):
             await websocket.send(json.dumps(data))
             await asyncio.sleep(config.websocket_sleep_time)
     except websockets.exceptions.ConnectionClosedOK:
-        print("WebSocket connection closed normally.")
+        print("🛑 WebSocket connection closed normally.")
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        print(f"🛑 WebSocket error: {e}")
 
 async def websocket_server():
     print("\n✨ WebSocket started\n")

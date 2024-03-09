@@ -106,7 +106,6 @@ def run_electron(port='2811'):
     # Wait for the Electron process to terminate
     process.wait()
     main_pid = os.getenv('RESOBOX_MAIN_PID')
-    print(main_pid)
     os.kill(int(main_pid), signal.SIGTERM)
     os._exit(1)
 
