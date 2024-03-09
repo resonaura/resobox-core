@@ -46,6 +46,7 @@ def update_matrix():
         time.sleep(1/config.screen_fps)
 
         if disp != None:
+            displayDraw.rectangle((0, 0, image.width, image.height), fill=0)
             displayDraw.point(global_matrix, fill=255)
             disp.image(displayImage)
             disp.display()
