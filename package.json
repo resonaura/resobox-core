@@ -4,6 +4,7 @@
   "description": "A Node.js project for running Python scripts",
   "main": "index.js",
   "scripts": {
+    "max": "python3 main.py",
     "start": "python3 main.py --no-ui",
     "dev": "python3 main.py --no-ui",
     "audio": "python3 main.py --no-ui --no-socket --no-backend --no-graphics",
