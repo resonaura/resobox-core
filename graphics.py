@@ -24,7 +24,8 @@ async def websocket_handler(websocket, path):
     while True:
         image = create_image(x, y)
         pixels = image.load()
-        await websocket.send(json.dumps(pixels))
+        matrix = [[pixels[x, y] for x in range(image.width)] for y in range(image.height)]
+        await websocket.send(json.dumps(matrix))
         x = (x + 1) % image.width  # Обновление положения текста для создания анимации
         await asyncio.sleep(0.033)  # Контроль скорости анимации
 
