@@ -1,38 +1,38 @@
 import asyncio
 import json
-import websockets
 from PIL import Image, ImageDraw, ImageFont
+import websockets
 
 # Параметры
-text = "Привет, мир!"  # Текст для рисования
-font_path = "assets/fonts/font.ttf"  # Путь к шрифту
-font_size = 24  # Размер шрифта
-x, y = 0, 0  # Начальное положение текста
+text = "Привет, мир!"
+font_path = "assets/fonts/font.ttf"
+font_size = 24
 
+# Инициализация шрифта и создание изображения один раз
 font = ImageFont.truetype(font_path, font_size)
-image = Image.new('1', (256, 128), 0)  # Создание черно-белого изображения один раз
-draw = ImageDraw.Draw(image)  # Создание объекта для рисования один раз
+image = Image.new('1', (256, 128), 0)
+draw = ImageDraw.Draw(image)
 
-
-def create_image(x, y):
-    draw.rectangle((0, 0, image.width, image.height), fill=0)  # Очистка изображения
-    draw.text((x, y), text, 1, font=font)  # Рисование текста
-    return image
-
-async def websocket_handler(websocket, path):
-    global x, y
+async def update_matrix(frequency=24):
+    x, y = 0, 0  # Начальные координаты
     while True:
-        image = create_image(x, y)
+        draw.rectangle((0, 0, image.width, image.height), fill=0)  # Очистка изображения
+        draw.text((x, y), text, 1, font=font)  # Рисование текста
         pixels = image.load()
         matrix = [[pixels[x, y] for x in range(image.width)] for y in range(image.height)]
-        await websocket.send(json.dumps(matrix))
         x = (x + 1) % image.width  # Обновление положения текста для создания анимации
-        await asyncio.sleep(0.1)  # Контроль скорости анимации
+        await asyncio.sleep(1/frequency)  # Ограничение частоты обновления
+        yield matrix  # Генерация новой матрицы
+
+async def websocket_handler(websocket, path):
+    async for matrix in update_matrix():
+        await websocket.send(json.dumps(matrix))
+        await asyncio.sleep(1/24)  # Синхронизация с частотой обновления матрицы
 
 async def graphics_server():
     print("\n📺 Graphics server started\n")
     async with websockets.serve(websocket_handler, '0.0.0.0', 8767):
-        await asyncio.Future()  # Run forever
+        await asyncio.Future()  # Бесконечный цикл
 
 def start_graphics_server():
     asyncio.run(graphics_server())
