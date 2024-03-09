@@ -27,7 +27,7 @@ async def websocket_handler(websocket, path):
         matrix = [[pixels[x, y] for x in range(image.width)] for y in range(image.height)]
         await websocket.send(json.dumps(matrix))
         x = (x + 1) % image.width  # Обновление положения текста для создания анимации
-        await asyncio.sleep(0.033)  # Контроль скорости анимации
+        await asyncio.sleep(0.1)  # Контроль скорости анимации
 
 async def graphics_server():
     print("\n📺 Graphics server started\n")
