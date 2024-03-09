@@ -68,9 +68,9 @@ def start_update_matrix_thread():
 
 async def graphics_server():
     print("\n📺 Graphics server started\n")
+    start_update_matrix_thread()  # Запуск потока для обновления матрицы
 
     if disp == None:
-        start_update_matrix_thread()  # Запуск потока для обновления матрицы
         async with websockets.serve(websocket_handler, '0.0.0.0', 8767):
             await asyncio.Future()  # Бесконечный цикл
 
