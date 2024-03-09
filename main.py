@@ -1,3 +1,5 @@
+import os
+import sys
 import jack
 import numpy
 import threading
@@ -118,3 +120,4 @@ finally:
     # Deactivate and close the client properly
     client.deactivate()
     client.close()
+    sys.exit()
