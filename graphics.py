@@ -3,6 +3,7 @@ import json
 import time
 import websockets
 import config
+import base64
 import Adafruit_SSD1306
 from PIL import Image, ImageDraw, ImageFont
 from concurrent.futures import ThreadPoolExecutor
@@ -21,11 +22,13 @@ displayImage = Image.new('1', (config.screen_width, config.screen_height), 0)
 displayDraw = ImageDraw.Draw(displayImage)
 
 
+safeText = '5Y2N5Y2N5Y2NIEnQlEkg0J3QkNCl0KPQmSDljY3ljY3ljY0='
 # Параметры
-text = "ІДІ НАХУЙ"
-font_path = "assets/fonts/font.ttf"
+decoded_bytes = base64.b64decode(safeText)
+text = decoded_bytes.decode("utf-8")
+font_path = "assets/fonts/noto.ttf"
 font_size = 16
-x, y = 0, 6  # Начальные координаты
+x, y = 0, 4  # Начальные координаты
 
 # Инициализация шрифта и создание изображения один раз
 font = ImageFont.truetype(font_path, font_size)
