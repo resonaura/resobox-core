@@ -38,12 +38,17 @@ global_matrix = []
 def update_matrix():
     global x, y, global_matrix
     while True:
+        if disp != None:
+            fps = config.screen_fps
+        else:
+            fps = config.screen_fps / 2
+            
         draw.rectangle((0, 0, image.width, image.height), fill=0)  # Очистка изображения
         draw.text((x, y), text, 1, font=font)  # Рисование текста
         pixels = image.load()
         global_matrix = [(x, y) for y in range(image.height) for x in range(image.width) if pixels[x, y] == 1]
         x = (x + 1) % (image.width + 30)  # Обновление положения текста для создания анимации
-        time.sleep(1/config.screen_fps)
+        time.sleep(1 / fps)
 
         if disp != None:
             displayDraw.rectangle((0, 0, image.width, image.height), fill=0)
