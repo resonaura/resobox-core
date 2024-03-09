@@ -1,4 +1,5 @@
 import asyncio
+import json
 import websockets
 from PIL import Image, ImageDraw, ImageFont
 
@@ -23,7 +24,7 @@ async def websocket_handler(websocket, path):
     while True:
         image = create_image(x, y)
         pixels = image.load()
-        await websocket.send(pixels)
+        await websocket.send(json.dumps(pixels))
         x = (x + 1) % image.width  # Обновление положения текста для создания анимации
         await asyncio.sleep(0.033)  # Контроль скорости анимации
 
