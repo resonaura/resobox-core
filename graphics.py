@@ -24,14 +24,14 @@ async def update_matrix(frequency=24):
         await asyncio.sleep(1/frequency)  # Ограничение частоты обновления
         yield matrix  # Генерация новой матрицы
 
-async def websocket_handler(websocket, path):
+async def wwebsocket_handler(websocket, path):
     async for matrix in update_matrix():
         await websocket.send(json.dumps(matrix))
         await asyncio.sleep(1/24)  # Синхронизация с частотой обновления матрицы
 
 async def graphics_server():
     print("\n📺 Graphics server started\n")
-    async with websockets.serve(websocket_handler, '0.0.0.0', 8767):
+    async with websockets.serve(wwebsocket_handler, '0.0.0.0', 8767):
         await asyncio.Future()  # Бесконечный цикл
 
 def start_graphics_server():

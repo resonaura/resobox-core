@@ -1,16 +1,6 @@
 # HTTP Server Setup
 import asyncio
-import calendar
-import json
-import os
-import queue
-import threading
-import time
-import numpy as np
-import sounddevice as sd
-import soundfile as sf
 import aiohttp_cors
-import websockets
 import config
 
 from aiohttp import web
