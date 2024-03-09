@@ -5,7 +5,6 @@ import argparse
 from multiprocessing import freeze_support, Process, current_process
 
 # Предполагаем, что эти модули у вас есть
-import config
 from ui.server import start_ui 
 from realtime import start_websocket_server
 from backend import start_http_server_in_thread
@@ -15,8 +14,6 @@ from audio import start_audio_server
 threads = []
 servers = []
 stop_event = threading.Event()
-
-os.environ['RESOBOX_MAIN_PID'] = str(os.getpid())
 
 def controlled_start_thread(target):
     def wrapper():
@@ -51,12 +48,12 @@ def start_servers(args):
 def stop_servers():
     stop_event.set() # Signal threads to stop
     for thread in threads:
-        thread.join(timeout=1) # Wait a bit for threads to exit
+        thread.join(timeout=0) # Wait a bit for threads to exit
 
     for server in servers:
         if server.is_alive():
             server.terminate()
-            server.join(timeout=1)
+            server.join(timeout=0)
 
 def signal_handler(signum, frame):
     print("\n💀 Closing...")
@@ -75,6 +72,8 @@ if __name__ == '__main__':
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
+
+    os.environ['RESOBOX_MAIN_PID'] = str(os.getpid())
 
     start_servers(args)
     input("\n🤍 Press Ctrl+C to stop...\n")
