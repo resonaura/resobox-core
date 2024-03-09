@@ -120,4 +120,4 @@ finally:
     # Deactivate and close the client properly
     client.deactivate()
     client.close()
-    sys.exit()
+    os._exit()
