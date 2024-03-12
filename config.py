@@ -26,7 +26,7 @@ output_rms_values = []
 
 # Global constants
 websocket_sleep_time = 0.02
-screen_fps = 60
+screen_fps = 40
 screen_width = 128
 screen_height = 32
 
