@@ -22,10 +22,8 @@ displayImage = Image.new('1', (config.screen_width, config.screen_height), 0)
 displayDraw = ImageDraw.Draw(displayImage)
 
 
-safeText = '5Y2N5Y2N5Y2NIEnQlEkg0J3QkNCl0KPQmSDljY3ljY3ljY0='
 # Параметры
-decoded_bytes = base64.b64decode(safeText)
-text = decoded_bytes.decode("utf-8")
+text = "ResoBox"
 font_path = "assets/fonts/noto.ttf"
 font_size = 16
 x, y = 0, 4  # Начальные координаты
@@ -35,11 +33,27 @@ font = ImageFont.truetype(font_path, font_size)
 image = Image.new('1', (config.screen_width, config.screen_height), 0)
 draw = ImageDraw.Draw(image)
 
+
+spriteSource = Image.open('assets/sprites/pipka.png')
+sprite = Image.new('1', (spriteSource.width, spriteSource.height), 0);
+spriteDraw = ImageDraw.Draw(sprite)
+
 # Глобальная переменная для хранения матрицы пикселей
 global_matrix = []
 
+for x in range(spriteSource.width):
+    for y in range(spriteSource.height):
+        pixel = spriteSource.getpixel((x, y))
+        
+        # Check if the pixel is black
+        # This checks for pure black, but you can adjust the threshold as needed
+        if pixel[3] == 255:
+            spriteDraw.point((x, y), fill=1)
+
+imageOffset = -sprite.width
+
 def update_matrix():
-    global x, y, global_matrix
+    global x, y, global_matrix, imageOffset
     while True:
         if disp != None:
             fps = config.screen_fps
@@ -47,10 +61,18 @@ def update_matrix():
             fps = config.screen_fps / 2
             
         draw.rectangle((0, 0, image.width, image.height), fill=0)  # Очистка изображения
-        draw.text((x, y), text, 1, font=font)  # Рисование текста
+        
+        draw.bitmap((imageOffset,0), sprite, 1)
+
+        imageOffset += 2
+
+        if imageOffset > image.width:
+            imageOffset = -sprite.width
+
+
         pixels = image.load()
         global_matrix = [(x, y) for y in range(image.height) for x in range(image.width) if pixels[x, y] == 1]
-        x = (x + 1) % (image.width + 30)  # Обновление положения текста для создания анимации
+
         time.sleep(1 / fps)
 
         if disp != None:
@@ -88,7 +110,3 @@ def start_graphics_server():
     except KeyboardInterrupt:
         print("\n🛑 Graphics server stopped by keyboard interrupt")
         # Здесь можно добавить дополнительную логику для корректного завершения работы, если это необходимо
-
-# Теперь запускаем сервер
-if __name__ == "__main__":
-    start_graphics_server()
