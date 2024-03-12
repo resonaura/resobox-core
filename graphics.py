@@ -34,7 +34,7 @@ image = Image.new('1', (config.screen_width, config.screen_height), 0)
 draw = ImageDraw.Draw(image)
 
 
-spriteSource = Image.open('assets/sprites/pipka.png')
+spriteSource = Image.open('assets/sprites/logo.png')
 sprite = Image.new('1', (spriteSource.width, spriteSource.height), 0);
 spriteDraw = ImageDraw.Draw(sprite)
 
@@ -50,7 +50,7 @@ for x in range(spriteSource.width):
         if pixel[3] == 255:
             spriteDraw.point((x, y), fill=1)
 
-imageOffset = -sprite.width
+imageOffset = 0
 
 def update_matrix():
     global x, y, global_matrix, imageOffset
@@ -63,8 +63,6 @@ def update_matrix():
         draw.rectangle((0, 0, image.width, image.height), fill=0)  # Очистка изображения
         
         draw.bitmap((imageOffset,0), sprite, 1)
-
-        imageOffset += 2
 
         if imageOffset > image.width:
             imageOffset = -sprite.width
