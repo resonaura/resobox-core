@@ -2,8 +2,10 @@ import json
 
 import config
 
-from pedalboard import Pedalboard, Convolution, Chorus, Reverb, Delay, Compressor, Distortion, LowpassFilter, Limiter
+from pedalboard import Pedalboard, Gain, Convolution, Chorus, Reverb, Delay, Compressor, Distortion, LowpassFilter, Limiter, Chain, HighpassFilter, Mix, NoiseGate
 from utils import create_effect, serialize
+
+from plugins.pan import Pan
 
 # Global variables
 effects_status = []
@@ -19,7 +21,29 @@ window_size = 50  # Window size for RMS moving average
 #    create_effect(Reverb, room_size=1, wet_level=0.1)
 #]
 fxchain_ids = []
-board = Pedalboard([])
+board = Pedalboard([
+    NoiseGate(),
+    Mix(
+        [
+            Chain([
+                HighpassFilter(cutoff_frequency_hz=1000), # Обрезает частоты ниже 1000 Гц
+                LowpassFilter(cutoff_frequency_hz=5000), # Обрезает частоты выше 5000 Гц
+                Distortion(50),
+                Gain(-20)
+            ])
+        ]
+    ),
+    Convolution('assets/impulses/cab.wav', 1),
+    Mix([
+        Chain([
+            Delay(0.5, 0.1, 1),
+            LowpassFilter(cutoff_frequency_hz=500),
+            Reverb(1, 1, 0.1),
+        ]),
+        Chain()
+    ]),
+    Limiter(),
+])
 
 input_rms_values = []
 output_rms_values = []
