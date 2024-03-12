@@ -28,7 +28,7 @@ board = Pedalboard([
             Chain([
                 HighpassFilter(cutoff_frequency_hz=1000), # Обрезает частоты ниже 1000 Гц
                 LowpassFilter(cutoff_frequency_hz=5000), # Обрезает частоты выше 5000 Гц
-                Distortion(50),
+                Distortion(80),
                 Gain(-20)
             ])
         ]
