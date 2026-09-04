@@ -6,6 +6,11 @@
 
 **ResoBox Core** is the audio processing software designed for **ResoBox**, my custom-built pedalboard. It delivers advanced sound manipulation and real-time performance tailored for musicians.
 
+
+<p align="center">
+  <img src="media/resobox-hardware.jpg" width="800" alt="ResoBox Hardware Pedalboard Prototype" />
+</p>
+
 ---
 
 ## 🛠️ Features
